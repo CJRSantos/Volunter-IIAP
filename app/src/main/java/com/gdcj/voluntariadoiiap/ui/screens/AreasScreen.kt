@@ -6,7 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,18 +25,21 @@ fun AreasScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Color(0xFFF8F9FA)) // Fondo gris muy claro
     ) {
+        // Título de la pantalla
         Text(
             text = "Áreas",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 26.sp,
+            fontWeight = FontWeight.ExtraBold,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            textAlign = TextAlign.Center
+                .padding(top = 24.dp, bottom = 8.dp),
+            textAlign = TextAlign.Center,
+            color = Color.Black
         )
 
+        // Lista de datos de las áreas
         val areas = listOf(
             AreaItem(
                 title = "Diversidad Biológica Terrestre Amazónica",
@@ -65,73 +68,87 @@ fun AreasScreen(
             )
         )
 
+        // Carrusel vertical de widgets
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
             items(areas) { area ->
-                AreaCard(area)
+                AreaCardWidget(area)
             }
         }
     }
 }
 
 @Composable
-fun AreaCard(area: AreaItem) {
+fun AreaCardWidget(area: AreaItem) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth()
+        ) {
+            // Chip de Ubicación (Estilo igual a la imagen)
             Surface(
-                color = Color(0xFF4CAF50),
-                shape = RoundedCornerShape(20.dp),
+                color = Color(0xFF4CAF50), // Verde IIAP
+                shape = RoundedCornerShape(50.dp),
                 modifier = Modifier.wrapContentSize()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Sin ubicación",
                         color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
+            // Subtítulo (Dirección)
             Text(
                 text = area.subtitle,
-                fontSize = 11.sp,
-                color = Color.Gray
+                fontSize = 12.sp,
+                color = Color.LightGray,
+                fontWeight = FontWeight.Medium
             )
 
+            // Título Principal
             Text(
                 text = "Área de ${area.title}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
                 color = Color.Black,
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 6.dp),
+                lineHeight = 24.sp
             )
 
+            // Descripción
             Text(
                 text = area.description,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = Color.DarkGray,
-                lineHeight = 18.sp
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Normal
             )
         }
     }

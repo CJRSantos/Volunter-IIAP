@@ -14,10 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import com.gdcj.voluntariadoiiap.R
 
 @Composable
 fun NosotrosScreen(
@@ -30,97 +34,105 @@ fun NosotrosScreen(
             .background(Color(0xFFFDFDFD))
             .verticalScroll(rememberScrollState())
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            // Título Principal
             Text(
                 text = "¿Por qué unirte?",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.Black,
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Descripción de Bienvenida
             Text(
                 text = "Únete a nuestra institución y sé parte de un equipo que impulsa la innovación, la sostenibilidad y el impacto positivo.",
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
-                lineHeight = 20.sp
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Fila de Widgets de Información (Historia, Misión, Diferencia)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                InfoCard(
+                InfoWidget(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Groups,
                     iconColor = Color(0xFFF38B1C),
                     title = "Nuestra historia",
-                    description = "Desde nuestros inicios, hemos trabajado en fortalecer la educación, la investigación y los proyectos sociales."
+                    description = "Desde nuestros inicios, hemos trabajado en fortalecer la educación e investigación."
                 )
-                InfoCard(
+                InfoWidget(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.RocketLaunch,
                     iconColor = Color(0xFFFFD600),
                     title = "Nuestra misión",
-                    description = "Impulsar iniciativas que transformen vidas a través de la educación y la acción social."
+                    description = "Impulsar iniciativas que transformen vidas a través de la educación."
                 )
-                InfoCard(
+                InfoWidget(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.WaterDrop,
                     iconColor = Color(0xFF2196F3),
                     title = "Lo que nos diferencia",
-                    description = "Nos distingue nuestro enfoque integral, combinando conocimiento e innovación."
+                    description = "Nos distingue nuestro enfoque integral e innovador."
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Box(
+            // Banner del Laboratorio (Widget de Imagen)
+            Card(
+                shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
+                    .height(220.dp),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                Text(
-                    text = "Imagen del Laboratorio",
-                    color = Color.DarkGray
+                AsyncImage(
+                    model = "https://www.gob.pe/institucion/iiap/noticias/imagen-del-laboratorio", // Placeholder o URL real
+                    contentDescription = "Laboratorio IIAP",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_launcher_background),
+                    error = painterResource(R.drawable.ic_launcher_background)
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Widgets de Estadísticas (Cuadrícula de 4)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StatCard(Modifier.weight(1f), "+4", "publicaciones científicas internacionales")
-                StatCard(Modifier.weight(1f), "+10", "proyectos en desarrollo actualmente")
-                StatCard(Modifier.weight(1f), "+500", "beneficiarios directos en programas sociales")
-                StatCard(Modifier.weight(1f), "+8", "alianzas estratégicas con instituciones nacionales e internacionales")
+                StatWidget(Modifier.weight(1f), "+4", "publicaciones científicas")
+                StatWidget(Modifier.weight(1f), "+10", "proyectos en desarrollo")
+                StatWidget(Modifier.weight(1f), "+500", "beneficiarios directos")
+                StatWidget(Modifier.weight(1f), "+8", "alianzas estratégicas")
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-fun InfoCard(
+fun InfoWidget(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     iconColor: Color,
@@ -128,23 +140,35 @@ fun InfoCard(
     description: String
 ) {
     Card(
-        modifier = modifier.height(240.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(200.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(14.dp)
                 .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Icon(icon, null, tint = iconColor, modifier = Modifier.size(32.dp))
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                description,
+                text = description,
                 fontSize = 10.sp,
                 color = Color.Gray,
                 textAlign = TextAlign.Center,
@@ -155,12 +179,12 @@ fun InfoCard(
 }
 
 @Composable
-fun StatCard(modifier: Modifier = Modifier, number: String, text: String) {
+fun StatWidget(modifier: Modifier = Modifier, number: String, text: String) {
     Card(
-        modifier = modifier.height(140.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.height(130.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -169,9 +193,21 @@ fun StatCard(modifier: Modifier = Modifier, number: String, text: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(number, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text, fontSize = 9.sp, color = Color.Gray, textAlign = TextAlign.Center)
+            Text(
+                text = number,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = text,
+                fontSize = 9.sp,
+                color = Color.DarkGray,
+                textAlign = TextAlign.Center,
+                lineHeight = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

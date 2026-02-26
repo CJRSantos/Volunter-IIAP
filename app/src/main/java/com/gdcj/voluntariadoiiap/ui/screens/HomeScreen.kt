@@ -2,8 +2,8 @@ package com.gdcj.voluntariadoiiap.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.gdcj.voluntariadoiiap.R
 import com.gdcj.voluntariadoiiap.ui.components.LogoutDialog
 import com.gdcj.voluntariadoiiap.ui.components.UserHeader
@@ -37,6 +38,7 @@ fun HomeScreen(
     name: String,
     email: String,
     onLogoutNavigate: () -> Unit,
+    onNavigateToInfo: () -> Unit, // Nuevo parámetro
     viewModel: HomeViewModel = viewModel()
 ) {
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
@@ -57,6 +59,9 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         item { UserHeader(name = name, email = email, onLogoutClick = { viewModel.onLogoutClick() }) }
+
+        // Hero Section / Tarjeta de Bienvenida
+        item { WelcomeHeroCard(onActionClick = onNavigateToInfo) }
 
         item { SectionHeader("Noticias") }
         item { NewsCarousel() }
@@ -81,6 +86,50 @@ fun SectionHeader(title: String) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
+}
+
+/* -------------------- HERO SECTION -------------------- */
+
+@Composable
+fun WelcomeHeroCard(onActionClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF003366))
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                text = "Aquí comienza tu espacio exclusivo de usuario",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 28.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Bienvenido, sé parte de este nuevo...",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onActionClick,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                shape = RoundedCornerShape(50),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = "Conocer más",
+                    color = Color(0xFF003366),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
 }
 
 /* -------------------- NOTICIAS -------------------- */
@@ -120,8 +169,8 @@ fun NewsCard(newsItem: NewsItem) {
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
-            Image(
-                painter = painterResource(id = newsItem.imageRes),
+            AsyncImage(
+                model = newsItem.imageRes,
                 contentDescription = null,
                 modifier = Modifier
                     .size(80.dp)
@@ -153,9 +202,45 @@ data class NewsItem(
 
 @Composable
 fun VideoCarousel() {
+    val context = LocalContext.current
+
     val videos = listOf(
-        VideoItem("Video 1", "Haz clic para ver el video", R.drawable.ic_launcher_background),
-        VideoItem("Video 2", "Haz clic para ver el video", R.drawable.ic_launcher_background)
+        VideoItem(
+            id = "01",
+            title = "Niñas en la Ciencia",
+            youtubeId = "7-gDLBYwAcc",
+            url = "https://www.youtube.com/watch?v=7-gDLBYwAcc"
+        ),
+        VideoItem(
+            id = "02",
+            title = "Logros del IIAP en el 2025",
+            youtubeId = "oTxwous9uGs",
+            url = "https://www.youtube.com/watch?v=oTxwous9uGs"
+        ),
+        VideoItem(
+            id = "03",
+            title = "Jane Goodall en el IIAP: una voz que inspira",
+            youtubeId = "5xSmXSLrRI0",
+            url = "https://www.youtube.com/watch?v=5xSmXSLrRI0"
+        ),
+        VideoItem(
+            id = "04",
+            title = "Inauguración del IIAP Sede Tingo María",
+            youtubeId = "NMF_35Q4nCU",
+            url = "https://www.youtube.com/watch?v=NMF_35Q4nCU"
+        ),
+        VideoItem(
+            id = "05",
+            title = "APEC 2024: Una Semana Histórica",
+            youtubeId = "5gdt_gml7o4",
+            url = "https://www.youtube.com/watch?v=5gdt_gml7o4"
+        ),
+        VideoItem(
+            id = "06",
+            title = "IIAP",
+            youtubeId = "saEzfUc_JLo",
+            url = "https://www.youtube.com/watch?v=saEzfUc_JLo"
+        )
     )
 
     LazyRow(
@@ -163,15 +248,25 @@ fun VideoCarousel() {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(videos) { video ->
-            VideoCard(video)
+            VideoCard(
+                video = video,
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(video.url))
+                    context.startActivity(intent)
+                }
+            )
         }
     }
 }
 
 @Composable
-fun VideoCard(video: VideoItem) {
+fun VideoCard(video: VideoItem, onClick: () -> Unit) {
+    val thumbnailUrl = "https://img.youtube.com/vi/${video.youtubeId}/mqdefault.jpg"
+
     Card(
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier
+            .width(240.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
@@ -179,41 +274,60 @@ fun VideoCard(video: VideoItem) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(135.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(video.thumbnailRes),
+                AsyncImage(
+                    model = thumbnailUrl,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(R.drawable.ic_launcher_background),
+                    error = painterResource(R.drawable.ic_launcher_background)
                 )
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.5f)),
+                        .background(Color.Black.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Play",
-                        tint = Color.White
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(video.title, fontWeight = FontWeight.Bold)
-                Text(video.caption, color = Color.Gray, fontSize = 12.sp)
+                Text(
+                    text = "ID: ${video.id}",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = video.title,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = "Toca para ver el video",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
             }
         }
     }
 }
 
 data class VideoItem(
+    val id: String,
     val title: String,
-    val caption: String,
-    val thumbnailRes: Int
+    val youtubeId: String,
+    val url: String
 )
 
 /* -------------------- REDES SOCIALES (PRO) -------------------- */
@@ -222,46 +336,42 @@ data class VideoItem(
 fun SocialMediaList() {
     val context = LocalContext.current
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    val socialMedias = listOf(
+        SocialMediaData(R.drawable.ic_facebook, "Facebook", Color(0xFF1877F2), "https://www.facebook.com/IIAPPERU/"),
+        SocialMediaData(R.drawable.ic_instagram, "Instagram", Color(0xFFE4405F), "https://www.instagram.com/iiapperu/?hl=es"),
+        SocialMediaData(R.drawable.ic_x, "X (Twitter)", Color(0xFF000000), "https://x.com/IiapPeru"),
+        SocialMediaData(R.drawable.ic_spotify, "Spotify", Color(0xFF1DB954), "https://open.spotify.com/show/22EKStrMUkA8MciXSj9EaE?si=4e51ebc4ad974d4b"),
+        SocialMediaData(R.drawable.ic_linkedin, "LinkedIn", Color(0xFF0A66C2), "https://pe.linkedin.com/company/instituto-de-investigaci%C3%B3n-de-la-amazon%C3%ADa-peruana-iiap"),
+        SocialMediaData(R.drawable.ic_youtube, "YouTube", Color(0xFFFF0000), "https://www.youtube.com/channel/UC7h_V_SOwW0wRsmhf00lAsA"),
+        SocialMediaData(R.drawable.ic_tiktok, "TikTok", Color(0xFF000000), "https://www.tiktok.com/@iiapperu?_r=1&_t=ZS-94FGzy7jFOq"),
+        SocialMediaData(R.drawable.ic_web, "Sitio Web", Color(0xFF008000), "https://www.gob.pe/iiap")
+    )
+
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        SocialMediaItem(
-            icon = R.drawable.ic_facebook,
-            name = "Facebook",
-            containerColor = Color(0xFF1877F2),
-            contentColor = Color.White,
-            onClick = {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://www.facebook.com"))
-                )
-            }
-        )
-
-        SocialMediaItem(
-            icon = R.drawable.ic_instagram,
-            name = "Instagram",
-            containerColor = Color(0xFFE4405F),
-            contentColor = Color.White,
-            onClick = {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://www.instagram.com"))
-                )
-            }
-        )
-
-        SocialMediaItem(
-            icon = R.drawable.ic_x,
-            name = "X (Twitter)",
-            containerColor = Color.Black,
-            contentColor = Color.White,
-            onClick = {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://x.com"))
-                )
-            }
-        )
+        items(socialMedias) { data ->
+            SocialMediaItem(
+                icon = data.icon,
+                name = data.name,
+                containerColor = data.containerColor,
+                modifier = Modifier
+                    .width(280.dp)
+                    .height(180.dp),
+                onClick = {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.url))
+                    context.startActivity(intent)
+                }
+            )
+        }
     }
 }
+
+data class SocialMediaData(
+    val icon: Int,
+    val name: String,
+    val containerColor: Color,
+    val url: String
+)

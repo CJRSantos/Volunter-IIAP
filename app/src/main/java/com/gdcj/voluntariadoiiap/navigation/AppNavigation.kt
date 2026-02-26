@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gdcj.voluntariadoiiap.ui.components.AppBottomNavigation
+import com.gdcj.voluntariadoiiap.ui.screens.AdditionalInfoScreen
 import com.gdcj.voluntariadoiiap.ui.screens.AreasScreen
 import com.gdcj.voluntariadoiiap.ui.screens.ConvocatoriasScreen
 import com.gdcj.voluntariadoiiap.ui.screens.HomeScreen
@@ -68,8 +69,13 @@ fun AppNavigation() {
                 HomeScreen(
                     name = name,
                     email = email,
-                    onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) }
+                    onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) },
+                    onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) }
                 )
+            }
+
+            composable(AppScreens.AdditionalInfoScreen.route) {
+                AdditionalInfoScreen(onBackClick = { navController.popBackStack() })
             }
 
             composable(
