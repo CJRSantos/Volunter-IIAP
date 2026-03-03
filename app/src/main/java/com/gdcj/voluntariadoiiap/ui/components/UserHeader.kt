@@ -10,18 +10,22 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
 
 @Composable
 fun UserHeader(
     name: String,
     email: String,
+    themeViewModel: ThemeViewModel,
     onLogoutClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
     Row(
         modifier = Modifier
@@ -35,13 +39,13 @@ fun UserHeader(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(Color.LightGray),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.Default.Person,
                 contentDescription = null,
-                tint = Color.Gray
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -49,15 +53,19 @@ fun UserHeader(
 
         // User info
         Column(modifier = Modifier.weight(1f)) {
-            Text("Bienvenido", fontSize = 12.sp, color = Color.Gray)
-            Text(name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text(email, fontSize = 12.sp, color = Color.Gray)
+            Text("Bienvenido", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+            Text(name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(email, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
         }
 
         // Menu
         Box {
             IconButton(onClick = { menuExpanded = true }) {
-                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                Icon(
+                    Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             DropdownMenu(
@@ -73,10 +81,26 @@ fun UserHeader(
                 )
 
                 DropdownMenuItem(
-                    text = { Text("Configuración") },
-                    onClick = { menuExpanded = false },
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Modo oscuro")
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = { themeViewModel.toggleDarkMode() },
+                                modifier = Modifier.scale(0.7f)
+                            )
+                        }
+                    },
+                    onClick = { themeViewModel.toggleDarkMode() },
                     leadingIcon = {
-                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Icon(
+                            if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                            contentDescription = null
+                        )
                     }
                 )
 

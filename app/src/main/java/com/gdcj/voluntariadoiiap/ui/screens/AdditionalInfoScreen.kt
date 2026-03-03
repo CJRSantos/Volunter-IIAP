@@ -36,7 +36,11 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, 
+                            contentDescription = "Atrás",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -47,6 +51,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
         ) {
@@ -54,7 +59,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 text = "Información adicional",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -105,7 +110,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 text = "CÓMO POSTULAR",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -113,7 +118,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
             Text(
                 text = "Para postular a una vacante de voluntario en BOSQUES, puedes elegir entre dos modalidades de presentación: presencial o virtual.",
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 lineHeight = 20.sp
             )
 
@@ -143,13 +148,13 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 text = "Nota importante",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Asegúrate de que tu archivo PDF no exceda los 10 MB y que todos los documentos estén correctamente ordenados y legibles.",
                 fontSize = 14.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 lineHeight = 20.sp
             )
 
@@ -170,7 +175,10 @@ fun PostularWidget(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(0.dp)
     ) {
         Row(
@@ -181,13 +189,13 @@ fun PostularWidget(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color(0xFF00B2FF), // Color celeste de la imagen
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -197,12 +205,12 @@ fun PostularWidget(
                     text = title,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = description,
                     fontSize = 12.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     lineHeight = 16.sp
                 )
             }
@@ -210,7 +218,7 @@ fun PostularWidget(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                 contentDescription = null,
                 modifier = Modifier.size(14.dp),
-                tint = Color.LightGray
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
             )
         }
     }

@@ -25,7 +25,7 @@ fun AreasScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA)) // Fondo gris muy claro
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Título de la pantalla
         Text(
@@ -36,7 +36,7 @@ fun AreasScreen(
                 .fillMaxWidth()
                 .padding(top = 24.dp, bottom = 8.dp),
             textAlign = TextAlign.Center,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         // Lista de datos de las áreas
@@ -88,7 +88,10 @@ fun AreaCardWidget(area: AreaItem) {
             .fillMaxWidth()
             .padding(horizontal = 4.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
@@ -98,7 +101,7 @@ fun AreaCardWidget(area: AreaItem) {
         ) {
             // Chip de Ubicación (Estilo igual a la imagen)
             Surface(
-                color = Color(0xFF4CAF50), // Verde IIAP
+                color = MaterialTheme.colorScheme.tertiary,
                 shape = RoundedCornerShape(50.dp),
                 modifier = Modifier.wrapContentSize()
             ) {
@@ -109,13 +112,13 @@ fun AreaCardWidget(area: AreaItem) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Sin ubicación",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onTertiary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -128,7 +131,7 @@ fun AreaCardWidget(area: AreaItem) {
             Text(
                 text = area.subtitle,
                 fontSize = 12.sp,
-                color = Color.LightGray,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 fontWeight = FontWeight.Medium
             )
 
@@ -137,7 +140,7 @@ fun AreaCardWidget(area: AreaItem) {
                 text = "Área de ${area.title}",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(vertical = 6.dp),
                 lineHeight = 24.sp
             )
@@ -146,7 +149,7 @@ fun AreaCardWidget(area: AreaItem) {
             Text(
                 text = area.description,
                 fontSize = 14.sp,
-                color = Color.DarkGray,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 lineHeight = 20.sp,
                 fontWeight = FontWeight.Normal
             )

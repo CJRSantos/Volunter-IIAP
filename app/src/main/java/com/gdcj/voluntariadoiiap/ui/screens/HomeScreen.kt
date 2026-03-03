@@ -32,13 +32,15 @@ import com.gdcj.voluntariadoiiap.ui.components.LogoutDialog
 import com.gdcj.voluntariadoiiap.ui.components.UserHeader
 import com.gdcj.voluntariadoiiap.ui.components.SocialMediaItem
 import com.gdcj.voluntariadoiiap.ui.viewmodel.HomeViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
 
 @Composable
 fun HomeScreen(
     name: String,
     email: String,
+    themeViewModel: ThemeViewModel,
     onLogoutNavigate: () -> Unit,
-    onNavigateToInfo: () -> Unit, // Nuevo parámetro
+    onNavigateToInfo: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
@@ -58,7 +60,14 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        item { UserHeader(name = name, email = email, onLogoutClick = { viewModel.onLogoutClick() }) }
+        item { 
+            UserHeader(
+                name = name, 
+                email = email, 
+                themeViewModel = themeViewModel,
+                onLogoutClick = { viewModel.onLogoutClick() }
+            ) 
+        }
 
         // Hero Section / Tarjeta de Bienvenida
         item { WelcomeHeroCard(onActionClick = onNavigateToInfo) }
@@ -84,6 +93,7 @@ fun SectionHeader(title: String) {
         text = title,
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
@@ -97,7 +107,7 @@ fun WelcomeHeroCard(onActionClick: () -> Unit) {
             .fillMaxWidth()
             .padding(16.dp),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF003366))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
     ) {
         Column(
             modifier = Modifier.padding(24.dp)
@@ -124,7 +134,7 @@ fun WelcomeHeroCard(onActionClick: () -> Unit) {
             ) {
                 Text(
                     text = "Conocer más",
-                    color = Color(0xFF003366),
+                    color = MaterialTheme.colorScheme.secondary,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -166,6 +176,10 @@ fun NewsCard(newsItem: NewsItem) {
     Card(
         modifier = Modifier.width(280.dp),
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp)) {
@@ -180,7 +194,7 @@ fun NewsCard(newsItem: NewsItem) {
             Spacer(modifier = Modifier.width(12.dp))
             Column {
                 Text(newsItem.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text(newsItem.date, color = Color.Gray, fontSize = 12.sp)
+                Text(newsItem.date, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 12.sp)
                 Text(newsItem.description, fontSize = 12.sp)
                 TextButton(onClick = {}) {
                     Text("Leer más")
@@ -268,6 +282,10 @@ fun VideoCard(video: VideoItem, onClick: () -> Unit) {
             .width(240.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column {
@@ -315,7 +333,7 @@ fun VideoCard(video: VideoItem, onClick: () -> Unit) {
                 )
                 Text(
                     text = "Toca para ver el video",
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     fontSize = 12.sp
                 )
             }

@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -13,12 +14,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gdcj.voluntariadoiiap.R
 
 @Composable
 fun RegisterScreen(
@@ -34,7 +38,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDFDFD))
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -47,7 +51,8 @@ fun RegisterScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
                     contentDescription = null,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
             }
             Spacer(modifier = Modifier.weight(0.3f))
@@ -55,21 +60,26 @@ fun RegisterScreen(
                 text = "VOLUNTARIADO",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(modifier = Modifier.weight(1f))
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Circular Logo Placeholder
+        // IIAP Circular Logo
         Box(
             modifier = Modifier
                 .size(120.dp)
-                .background(Color(0xFFF5F5F5), CircleShape),
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            Text("IIAP", color = Color(0xFFF38B1C), fontWeight = FontWeight.Bold)
+            Image(
+                painter = painterResource(id = R.mipmap.ic_launcher),
+                contentDescription = "IIAP Logo",
+                modifier = Modifier.size(80.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -77,7 +87,7 @@ fun RegisterScreen(
             text = "Crear Cuenta",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Start)
         )
 
@@ -100,12 +110,12 @@ fun RegisterScreen(
 
         // Password Field
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Contraseña", fontSize = 14.sp, color = Color.DarkGray)
+            Text(text = "Contraseña", fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                placeholder = { Text("........", color = Color.LightGray) },
+                placeholder = { Text("........", color = Color.Gray) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
@@ -117,8 +127,10 @@ fun RegisterScreen(
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color(0xFFEEEEEE),
-                    focusedBorderColor = Color(0xFFF38B1C)
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent
                 )
             )
         }
@@ -132,9 +144,9 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF38B1C))
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text(text = "Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -144,14 +156,14 @@ fun RegisterScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
             Text(
                 text = " O regístrate con ",
                 fontSize = 12.sp,
                 color = Color.Gray,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
-            HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFEEEEEE))
+            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -162,8 +174,8 @@ fun RegisterScreen(
                 onClick = { /* TODO */ },
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE))
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Text(text = "Google", fontSize = 14.sp)
             }
@@ -171,8 +183,8 @@ fun RegisterScreen(
                 onClick = { /* TODO */ },
                 modifier = Modifier.weight(1f).height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Black),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE))
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Text(text = "Teléfono", fontSize = 14.sp)
             }
@@ -186,7 +198,7 @@ fun RegisterScreen(
                 onClick = onBackToLogin,
                 contentPadding = PaddingValues(0.dp)
             ) {
-                Text(text = "Inicia sesión", color = Color(0xFFF38B1C), fontWeight = FontWeight.Bold)
+                Text(text = "Inicia sesión", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -195,18 +207,20 @@ fun RegisterScreen(
 @Composable
 fun CustomRegisterField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = label, fontSize = 14.sp, color = Color.DarkGray)
+        Text(text = label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.LightGray) },
+            placeholder = { Text(placeholder, color = Color.Gray) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             leadingIcon = { Icon(icon, contentDescription = null, tint = Color.Gray) },
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFFEEEEEE),
-                focusedBorderColor = Color(0xFFF38B1C)
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent
             )
         )
     }

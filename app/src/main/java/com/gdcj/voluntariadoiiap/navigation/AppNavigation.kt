@@ -17,9 +17,10 @@ import com.gdcj.voluntariadoiiap.ui.screens.HomeScreen
 import com.gdcj.voluntariadoiiap.ui.screens.LoginScreen
 import com.gdcj.voluntariadoiiap.ui.screens.NosotrosScreen
 import com.gdcj.voluntariadoiiap.ui.screens.RegisterScreen
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(themeViewModel: ThemeViewModel) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -69,6 +70,7 @@ fun AppNavigation() {
                 HomeScreen(
                     name = name,
                     email = email,
+                    themeViewModel = themeViewModel,
                     onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) },
                     onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) }
                 )
