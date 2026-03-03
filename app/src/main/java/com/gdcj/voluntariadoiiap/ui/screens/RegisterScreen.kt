@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -23,9 +25,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gdcj.voluntariadoiiap.R
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthState
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
+    authViewModel: AuthViewModel,
     onRegisterClick: (String, String) -> Unit,
     onBackToLogin: () -> Unit
 ) {
@@ -34,6 +39,15 @@ fun RegisterScreen(
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val authState by authViewModel.authState.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Error) {
+            Toast.makeText(context, (authState as AuthState.Error).message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -76,7 +90,7 @@ fun RegisterScreen(
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.mipmap.ic_launcher),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "IIAP Logo",
                 modifier = Modifier.size(80.dp)
             )
@@ -94,17 +108,38 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Name Field
-        CustomRegisterField(label = "Nombre completo", value = name, onValueChange = { name = it }, placeholder = "Juan Pérez", icon = Icons.Default.Person)
+        CustomRegisterField(
+            label = "Nombre completo", 
+            value = name, 
+            onValueChange = { name = it }, 
+            placeholder = "Juan Pérez", 
+            icon = Icons.Default.Person,
+            enabled = authState !is AuthState.Loading
+        )
         
         Spacer(modifier = Modifier.height(16.dp))
 
         // Email Field
-        CustomRegisterField(label = "Correo electrónico", value = email, onValueChange = { email = it }, placeholder = "ejemplo@correo.com", icon = Icons.Default.Email)
+        CustomRegisterField(
+            label = "Correo electrónico", 
+            value = email, 
+            onValueChange = { email = it }, 
+            placeholder = "ejemplo@correo.com", 
+            icon = Icons.Default.Email,
+            enabled = authState !is AuthState.Loading
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Phone Field
-        CustomRegisterField(label = "Número de teléfono", value = phone, onValueChange = { phone = it }, placeholder = "+51 999 999 999", icon = Icons.Default.PhoneAndroid)
+        // Phone Field (Note: Not in API register, but keeping for UI)
+        CustomRegisterField(
+            label = "Número de teléfono", 
+            value = phone, 
+            onValueChange = { phone = it }, 
+            placeholder = "+51 999 999 999", 
+            icon = Icons.Default.PhoneAndroid,
+            enabled = authState !is AuthState.Loading
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -118,6 +153,7 @@ fun RegisterScreen(
                 placeholder = { Text("........", color = Color.Gray) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
+                enabled = authState !is AuthState.Loading,
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -139,14 +175,23 @@ fun RegisterScreen(
 
         // Register Button
         Button(
-            onClick = { onRegisterClick(name, email) },
+            onClick = { 
+                authViewModel.register(name, email, password) {
+                    onRegisterClick(name, email)
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(12.dp),
+            enabled = authState !is AuthState.Loading,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text(text = "Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            if (authState is AuthState.Loading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text(text = "Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -205,7 +250,7 @@ fun RegisterScreen(
 }
 
 @Composable
-fun CustomRegisterField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+fun CustomRegisterField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean = true) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(text = label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f))
         Spacer(modifier = Modifier.height(8.dp))
@@ -215,6 +260,7 @@ fun CustomRegisterField(label: String, value: String, onValueChange: (String) ->
             placeholder = { Text(placeholder, color = Color.Gray) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
+            enabled = enabled,
             leadingIcon = { Icon(icon, contentDescription = null, tint = Color.Gray) },
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,

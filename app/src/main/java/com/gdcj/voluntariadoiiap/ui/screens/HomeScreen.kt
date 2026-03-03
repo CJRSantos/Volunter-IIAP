@@ -31,6 +31,7 @@ import com.gdcj.voluntariadoiiap.R
 import com.gdcj.voluntariadoiiap.ui.components.LogoutDialog
 import com.gdcj.voluntariadoiiap.ui.components.UserHeader
 import com.gdcj.voluntariadoiiap.ui.components.SocialMediaItem
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
 import com.gdcj.voluntariadoiiap.ui.viewmodel.HomeViewModel
 import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
 
@@ -39,8 +40,10 @@ fun HomeScreen(
     name: String,
     email: String,
     themeViewModel: ThemeViewModel,
+    authViewModel: AuthViewModel,
     onLogoutNavigate: () -> Unit,
     onNavigateToInfo: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     viewModel: HomeViewModel = viewModel()
 ) {
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
@@ -49,8 +52,10 @@ fun HomeScreen(
         LogoutDialog(
             onDismiss = { viewModel.onDismissLogoutDialog() },
             onConfirm = {
-                viewModel.onConfirmLogout()
-                onLogoutNavigate()
+                authViewModel.logout {
+                    viewModel.onConfirmLogout()
+                    onLogoutNavigate()
+                }
             }
         )
     }
@@ -65,7 +70,8 @@ fun HomeScreen(
                 name = name, 
                 email = email, 
                 themeViewModel = themeViewModel,
-                onLogoutClick = { viewModel.onLogoutClick() }
+                onLogoutClick = { viewModel.onLogoutClick() },
+                onProfileClick = onNavigateToProfile
             ) 
         }
 

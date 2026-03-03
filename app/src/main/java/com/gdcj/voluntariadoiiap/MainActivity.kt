@@ -14,9 +14,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gdcj.voluntariadoiiap.data.local.SessionManager
 import com.gdcj.voluntariadoiiap.navigation.AppNavigation
 import com.gdcj.voluntariadoiiap.ui.theme.VOLUNTARIADOIIAPTheme
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModelFactory
 import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +29,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: ThemeViewModel = viewModel()
             val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+            
+            val sessionManager = SessionManager(this)
+            val authViewModel: AuthViewModel = viewModel(
+                factory = AuthViewModelFactory(sessionManager)
+            )
+            val userViewModel: UserViewModel = viewModel()
 
             VOLUNTARIADOIIAPTheme(darkTheme = isDarkMode) {
                 val backgroundColor by animateColorAsState(
@@ -38,7 +48,11 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(backgroundColor)
                 ) {
-                    AppNavigation(themeViewModel = themeViewModel)
+                    AppNavigation(
+                        themeViewModel = themeViewModel,
+                        authViewModel = authViewModel,
+                        userViewModel = userViewModel
+                    )
                 }
             }
         }

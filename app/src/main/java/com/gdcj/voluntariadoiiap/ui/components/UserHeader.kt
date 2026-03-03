@@ -22,7 +22,8 @@ fun UserHeader(
     name: String,
     email: String,
     themeViewModel: ThemeViewModel,
-    onLogoutClick: () -> Unit
+    onLogoutClick: () -> Unit,
+    onProfileClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val isDarkMode by themeViewModel.isDarkMode.collectAsState()
@@ -73,8 +74,11 @@ fun UserHeader(
                 onDismissRequest = { menuExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Perfil") },
-                    onClick = { menuExpanded = false },
+                    text = { Text("Perfil (CRUD Usuarios)") },
+                    onClick = { 
+                        menuExpanded = false
+                        onProfileClick()
+                    },
                     leadingIcon = {
                         Icon(Icons.Default.AccountCircle, contentDescription = null)
                     }

@@ -10,17 +10,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gdcj.voluntariadoiiap.ui.components.AppBottomNavigation
-import com.gdcj.voluntariadoiiap.ui.screens.AdditionalInfoScreen
-import com.gdcj.voluntariadoiiap.ui.screens.AreasScreen
-import com.gdcj.voluntariadoiiap.ui.screens.ConvocatoriasScreen
-import com.gdcj.voluntariadoiiap.ui.screens.HomeScreen
-import com.gdcj.voluntariadoiiap.ui.screens.LoginScreen
-import com.gdcj.voluntariadoiiap.ui.screens.NosotrosScreen
-import com.gdcj.voluntariadoiiap.ui.screens.RegisterScreen
+import com.gdcj.voluntariadoiiap.ui.screens.*
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
 import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.UserViewModel
 
 @Composable
-fun AppNavigation(themeViewModel: ThemeViewModel) {
+fun AppNavigation(
+    themeViewModel: ThemeViewModel,
+    authViewModel: AuthViewModel,
+    userViewModel: UserViewModel
+) {
     val navController = rememberNavController()
 
     Scaffold(
@@ -28,18 +28,18 @@ fun AppNavigation(themeViewModel: ThemeViewModel) {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppScreens.LoginScreen.route,
+            startDestination = if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppScreens.LoginScreen.route) {
                 LoginScreen(
-                    onLoginClick = {
+                    authViewModel = authViewModel,
+                    onLoginClick = { name, email ->
                         navController.navigate(
-                            AppScreens.HomeScreen.createRoute(
-                                "Usuario Login",
-                                "usuario@gmail.com"
-                            )
-                        )
+                            AppScreens.HomeScreen.createRoute(name, email)
+                        ) {
+                            popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                        }
                     },
                     onRegisterClick = {
                         navController.navigate(AppScreens.RegisterScreen.route)
@@ -49,10 +49,13 @@ fun AppNavigation(themeViewModel: ThemeViewModel) {
 
             composable(AppScreens.RegisterScreen.route) {
                 RegisterScreen(
+                    authViewModel = authViewModel,
                     onRegisterClick = { name, email ->
                         navController.navigate(
                             AppScreens.HomeScreen.createRoute(name, email)
-                        )
+                        ) {
+                            popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                        }
                     },
                     onBackToLogin = { navController.popBackStack() }
                 )
@@ -71,13 +74,38 @@ fun AppNavigation(themeViewModel: ThemeViewModel) {
                     name = name,
                     email = email,
                     themeViewModel = themeViewModel,
-                    onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) },
-                    onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) }
+                    authViewModel = authViewModel,
+                    onLogoutNavigate = { 
+                        navController.navigate(AppScreens.LoginScreen.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
+                    onNavigateToProfile = { 
+                        navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
+                    }
                 )
             }
 
             composable(AppScreens.AdditionalInfoScreen.route) {
                 AdditionalInfoScreen(onBackClick = { navController.popBackStack() })
+            }
+
+            composable(
+                route = AppScreens.ProfileScreen.route,
+                arguments = listOf(
+                    navArgument("name") { defaultValue = "" },
+                    navArgument("email") { defaultValue = "" }
+                )
+            ) { backStackEntry ->
+                val name = backStackEntry.arguments?.getString("name") ?: ""
+                val email = backStackEntry.arguments?.getString("email") ?: ""
+                ProfileScreen(
+                    name = name,
+                    email = email,
+                    userViewModel = userViewModel,
+                    onBackClick = { navController.popBackStack() }
+                )
             }
 
             composable(

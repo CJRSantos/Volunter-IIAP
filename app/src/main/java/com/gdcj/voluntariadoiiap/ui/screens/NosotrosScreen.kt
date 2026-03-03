@@ -31,7 +31,7 @@ fun NosotrosScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFDFDFD))
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         Column(
@@ -47,7 +47,7 @@ fun NosotrosScreen(
                 text = "¿Por qué unirte?",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
 
@@ -57,7 +57,7 @@ fun NosotrosScreen(
             Text(
                 text = "Únete a nuestra institución y sé parte de un equipo que impulsa la innovación, la sostenibilidad y el impacto positivo.",
                 fontSize = 15.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -73,7 +73,7 @@ fun NosotrosScreen(
                 InfoWidget(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Groups,
-                    iconColor = Color(0xFFF38B1C),
+                    iconColor = MaterialTheme.colorScheme.primary,
                     title = "Nuestra historia",
                     description = "Desde nuestros inicios, hemos trabajado en fortalecer la educación e investigación."
                 )
@@ -142,7 +142,10 @@ fun InfoWidget(
     Card(
         modifier = modifier.height(200.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -170,7 +173,7 @@ fun InfoWidget(
             Text(
                 text = description,
                 fontSize = 10.sp,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
                 lineHeight = 14.sp
             )
@@ -183,7 +186,10 @@ fun StatWidget(modifier: Modifier = Modifier, number: String, text: String) {
     Card(
         modifier = modifier.height(130.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -197,13 +203,13 @@ fun StatWidget(modifier: Modifier = Modifier, number: String, text: String) {
                 text = number,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = text,
                 fontSize = 9.sp,
-                color = Color.DarkGray,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
                 lineHeight = 12.sp,
                 fontWeight = FontWeight.Medium

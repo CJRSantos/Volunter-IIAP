@@ -2,6 +2,7 @@ package com.gdcj.voluntariadoiiap.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
@@ -31,5 +32,9 @@ sealed class AppScreens(
 
     object NosotrosScreen : AppScreens("nosotros_screen", "Nosotros", Icons.Default.Groups) {
         fun createRoute(name: String, email: String) = "nosotros_screen?name=$name&email=$email"
+    }
+
+    object ProfileScreen : AppScreens("profile_screen", "Perfil", Icons.Default.AccountCircle) {
+        fun createRoute(name: String, email: String) = "profile_screen?name=$name&email=$email"
     }
 }
