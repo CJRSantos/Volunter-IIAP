@@ -54,91 +54,127 @@ fun LoginScreen(
         authViewModel.login(emailOrPhone, password, onLoginClick)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(60.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Imagen de Fondo
+        Image(
+            painter = painterResource(id = R.drawable.ic_launcher_background), // Usando un recurso existente como placeholder
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
 
-        // Contenedor del Logo (Tamaño inicial cuadrado)
-        Surface(
-            modifier = Modifier.size(150.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            shadowElevation = 4.dp
+        // Capa de oscurecimiento
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // Logo IIAP
+            Surface(
+                modifier = Modifier.size(150.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                shadowElevation = 4.dp
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_iiap),
-                    contentDescription = "IIAP Logo",
-                    modifier = Modifier.size(120.dp),
-                    contentScale = ContentScale.Fit
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-        Text(
-            text = "VOLUNTARIADO IIAP",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // Campos de texto
-        OutlinedTextField(
-            value = emailOrPhone,
-            onValueChange = { emailOrPhone = it },
-            label = { Text("Correo o Teléfono") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = null)
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                        contentDescription = "IIAP Logo",
+                        modifier = Modifier.size(120.dp),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
-        )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "VOLUNTARIADO IIAP",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
 
-        Button(
-            onClick = { authViewModel.login(emailOrPhone, password, onLoginClick) },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-        ) {
-            if (authState is AuthState.Loading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text("Iniciar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // Tarjeta de campos
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    OutlinedTextField(
+                        value = emailOrPhone,
+                        onValueChange = { emailOrPhone = it },
+                        placeholder = { Text("Correo o Teléfono", color = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = { Text("Contraseña", color = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = null)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = Color.LightGray
+                        )
+                    )
+                }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        TextButton(onClick = onRegisterClick) {
-            Text("¿No tienes cuenta? Regístrate aquí", color = MaterialTheme.colorScheme.primary)
+            // Botón Iniciar Sesión
+            Button(
+                onClick = { handleLogin() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF38B1C))
+            ) {
+                if (authState is AuthState.Loading) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Iniciar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            TextButton(onClick = onRegisterClick) {
+                Text(
+                    text = "¿No tienes cuenta? Regístrate aquí",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
