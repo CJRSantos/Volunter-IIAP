@@ -2,6 +2,12 @@ package com.gdcj.voluntariadoiiap.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// IIAP Brand Colors
+val IiapOrange = Color(0xFFF38B1C)
+val IiapGreen = Color(0xFF388E3C)
+val IiapDark = Color(0xFF231F20)
+val IiapLightGray = Color(0xFFF5F5F5)
+
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)
