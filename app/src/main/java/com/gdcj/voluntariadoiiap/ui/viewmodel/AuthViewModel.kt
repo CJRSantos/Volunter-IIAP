@@ -9,6 +9,7 @@ import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -28,13 +29,14 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
                 val response = RetrofitClient.authService.login(LoginRequest(email, pass))
                 if (response.isSuccessful) {
                     val body = response.body()
-                    val token = body?.token ?: "" // Asumimos que la API devuelve un token
+                    val token = body?.token ?: ""
                     sessionManager.saveAuthToken(token)
                     
                     _authState.value = AuthState.Success("Bienvenido")
                     onSuccess("Usuario IIAP", email)
                 } else {
-                    _authState.value = AuthState.Error("Credenciales inválidas")
+                    val errorMsg = parseError(response.errorBody()?.string())
+                    _authState.value = AuthState.Error(errorMsg ?: "Credenciales inválidas")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error de conexión: ${e.message}")
@@ -42,20 +44,46 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
-    fun register(name: String, email: String, pass: String, onSuccess: () -> Unit) {
+    fun register(name: String, email: String, pass: String, phone: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = RetrofitClient.authService.register(RegisterRequest(email, pass, name))
+                // Enviamos todos los campos que la UI captura
+                val response = RetrofitClient.authService.register(
+                    RegisterRequest(
+                        email = email, 
+                        password = pass, 
+                        name = name,
+                        phone = phone,
+                        role_id = 1 // Por defecto rol de voluntario
+                    )
+                )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.Success("Registro exitoso")
                     onSuccess()
                 } else {
-                    _authState.value = AuthState.Error("Error al registrar: ${response.code()}")
+                    val errorMsg = parseError(response.errorBody()?.string())
+                    _authState.value = AuthState.Error(errorMsg ?: "Error al registrar: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error de red")
+                _authState.value = AuthState.Error("Error de red: ${e.message}")
             }
+        }
+    }
+
+    private fun parseError(errorBody: String?): String? {
+        if (errorBody == null) return null
+        return try {
+            val json = JSONObject(errorBody)
+            if (json.has("message")) {
+                json.getString("message")
+            } else if (json.has("error")) {
+                json.getString("error")
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -64,7 +92,6 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
             try {
                 RetrofitClient.authService.logout()
             } catch (e: Exception) {
-                // Ignorar error en logout de red
             } finally {
                 sessionManager.clearSession()
                 onSuccess()

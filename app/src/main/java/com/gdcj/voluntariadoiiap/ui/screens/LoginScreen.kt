@@ -45,6 +45,14 @@ fun LoginScreen(
         }
     }
 
+    fun handleLogin() {
+        if (emailOrPhone.isBlank() || password.isBlank()) {
+            Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
+            return
+        }
+        authViewModel.login(emailOrPhone, password, onLoginClick)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -147,7 +155,7 @@ fun LoginScreen(
 
         // Login Button
         Button(
-            onClick = { authViewModel.login(emailOrPhone, password, onLoginClick) },
+            onClick = { handleLogin() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

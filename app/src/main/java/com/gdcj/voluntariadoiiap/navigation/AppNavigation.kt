@@ -11,15 +11,16 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gdcj.voluntariadoiiap.ui.components.AppBottomNavigation
 import com.gdcj.voluntariadoiiap.ui.screens.*
-import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
-import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
-import com.gdcj.voluntariadoiiap.ui.viewmodel.UserViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
 @Composable
 fun AppNavigation(
     themeViewModel: ThemeViewModel,
     authViewModel: AuthViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    roleViewModel: RoleViewModel,
+    areaViewModel: AreaViewModel,
+    projectViewModel: ProjectViewModel
 ) {
     val navController = rememberNavController()
 
@@ -104,6 +105,9 @@ fun AppNavigation(
                     name = name,
                     email = email,
                     userViewModel = userViewModel,
+                    roleViewModel = roleViewModel,
+                    areaViewModel = areaViewModel,
+                    projectViewModel = projectViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }

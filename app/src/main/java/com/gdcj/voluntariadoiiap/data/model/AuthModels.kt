@@ -1,7 +1,5 @@
 package com.gdcj.voluntariadoiiap.data.model
 
-import com.google.gson.annotations.SerializedName
-
 // Login
 data class LoginRequest(
     val email: String,
@@ -9,15 +7,17 @@ data class LoginRequest(
 )
 
 data class LoginResponse(
-    val token: String?, // Suponiendo que la API devuelve un token aunque no lo mencionaste explícitamente en el 200
+    val token: String?,
     val message: String?
 )
 
-// Register
+// Register - Actualizado para incluir campos de la UI
 data class RegisterRequest(
     val email: String,
     val password: String,
-    val name: String
+    val name: String,
+    val phone: String? = null,
+    val role_id: Int = 1 // Rol por defecto (ej. Voluntario)
 )
 
 data class RegisterResponse(

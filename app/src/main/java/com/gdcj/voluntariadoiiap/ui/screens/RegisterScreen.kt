@@ -49,6 +49,22 @@ fun RegisterScreen(
         }
     }
 
+    fun handleRegister() {
+        if (name.isBlank() || email.isBlank() || phone.isBlank() || password.isBlank()) {
+            Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Basic email validation could also be added here
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(context, "Por favor, ingresa un correo válido", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        authViewModel.register(name, email, password, phone) {
+            onRegisterClick(name, email)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -131,7 +147,7 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Phone Field (Note: Not in API register, but keeping for UI)
+        // Phone Field
         CustomRegisterField(
             label = "Número de teléfono", 
             value = phone, 
@@ -175,11 +191,7 @@ fun RegisterScreen(
 
         // Register Button
         Button(
-            onClick = { 
-                authViewModel.register(name, email, password) {
-                    onRegisterClick(name, email)
-                }
-            },
+            onClick = { handleRegister() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

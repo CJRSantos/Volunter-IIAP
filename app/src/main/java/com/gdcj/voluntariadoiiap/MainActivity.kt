@@ -17,10 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
 import com.gdcj.voluntariadoiiap.navigation.AppNavigation
 import com.gdcj.voluntariadoiiap.ui.theme.VOLUNTARIADOIIAPTheme
-import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
-import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModelFactory
-import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
-import com.gdcj.voluntariadoiiap.ui.viewmodel.UserViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +32,9 @@ class MainActivity : ComponentActivity() {
                 factory = AuthViewModelFactory(sessionManager)
             )
             val userViewModel: UserViewModel = viewModel()
+            val roleViewModel: RoleViewModel = viewModel()
+            val areaViewModel: AreaViewModel = viewModel()
+            val projectViewModel: ProjectViewModel = viewModel()
 
             VOLUNTARIADOIIAPTheme(darkTheme = isDarkMode) {
                 val backgroundColor by animateColorAsState(
@@ -51,7 +51,10 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(
                         themeViewModel = themeViewModel,
                         authViewModel = authViewModel,
-                        userViewModel = userViewModel
+                        userViewModel = userViewModel,
+                        roleViewModel = roleViewModel,
+                        areaViewModel = areaViewModel,
+                        projectViewModel = projectViewModel
                     )
                 }
             }
