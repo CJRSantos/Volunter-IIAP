@@ -53,7 +53,7 @@ fun ProfileScreen(
     val projectListState by projectViewModel.projectListState.collectAsState()
 
     val userOpState by userViewModel.operationState.collectAsState()
-    val roleOpState by roleViewModel.createRoleState.collectAsState()
+    val roleOpState by roleViewModel.operationState.collectAsState()
     val areaOpState by areaViewModel.operationState.collectAsState()
     val projectOpState by projectViewModel.operationState.collectAsState()
 
