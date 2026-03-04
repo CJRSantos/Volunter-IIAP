@@ -93,9 +93,9 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Logo IIAP - Respetando transparencia
+            // Logo IIAP - Igualado al tamaño de Login (150dp)
             Box(
-                modifier = Modifier.size(110.dp),
+                modifier = Modifier.size(150.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(

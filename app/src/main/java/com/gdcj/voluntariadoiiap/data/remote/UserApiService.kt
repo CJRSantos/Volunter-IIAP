@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.data.remote
 
+import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import retrofit2.Response
 import retrofit2.http.*
@@ -35,4 +36,10 @@ interface UserApiService {
         @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
+
+    @GET("users/{id}/studies")
+    suspend fun getUserStudies(
+        @Header("Authorization") token: String,
+        @Path("id") userId: Int
+    ): Response<List<Study>>
 }
