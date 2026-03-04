@@ -1,10 +1,12 @@
 package com.gdcj.voluntariadoiiap.data.model
 
-data class Skill(
+data class Study(
     val id: Int? = null,
-    val title: String,
-    val description: String,
-    val yearsOfExperience: Int,
+    val institution: String,
+    val degree: String,
+    val fieldOfStudy: String,
+    val startDate: String,
+    val endDate: String? = null,
     val user_id: Int,
     val createdAt: String? = null,
     val updatedAt: String? = null

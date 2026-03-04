@@ -48,31 +48,14 @@ fun RegisterScreen(
         }
     }
 
-    fun handleRegister() {
-        if (name.isBlank() || email.isBlank() || phone.isBlank() || password.isBlank()) {
-            Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            Toast.makeText(context, "Por favor, ingresa un correo válido", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        authViewModel.register(name, email, password, phone) {
-            onRegisterClick(name, email)
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        // Imagen de Fondo
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_background), // Usar background_auth si existe
+            painter = painterResource(id = R.drawable.background_auth),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
-
-        // Capa de oscurecimiento
+        
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -110,21 +93,17 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Logo IIAP
-            Surface(
-                modifier = Modifier.size(110.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White.copy(alpha = 0.9f),
-                shadowElevation = 4.dp
+            // Logo IIAP - Igualado al tamaño de Login (150dp)
+            Box(
+                modifier = Modifier.size(150.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_foreground), // logo_iiap
-                        contentDescription = "IIAP Logo",
-                        modifier = Modifier.size(90.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.logo_iiap),
+                    contentDescription = "IIAP Logo",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -138,83 +117,78 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta de campos
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    CustomRegisterField(
-                        label = "Nombre completo",
-                        value = name,
-                        onValueChange = { name = it },
-                        placeholder = "Juan Pérez",
-                        icon = Icons.Default.Person,
-                        enabled = authState !is AuthState.Loading
-                    )
+                TransparentRegisterField(
+                    label = "Nombre completo", 
+                    value = name, 
+                    onValueChange = { name = it }, 
+                    placeholder = "Juan Pérez", 
+                    icon = Icons.Default.Person,
+                    enabled = authState !is AuthState.Loading
+                )
+                
+                TransparentRegisterField(
+                    label = "Correo electrónico", 
+                    value = email, 
+                    onValueChange = { email = it }, 
+                    placeholder = "ejemplo@correo.com", 
+                    icon = Icons.Default.Email,
+                    enabled = authState !is AuthState.Loading
+                )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                TransparentRegisterField(
+                    label = "Número de teléfono", 
+                    value = phone, 
+                    onValueChange = { phone = it }, 
+                    placeholder = "+51 999 999 999", 
+                    icon = Icons.Default.PhoneAndroid,
+                    enabled = authState !is AuthState.Loading
+                )
 
-                    CustomRegisterField(
-                        label = "Correo electrónico",
-                        value = email,
-                        onValueChange = { email = it },
-                        placeholder = "ejemplo@correo.com",
-                        icon = Icons.Default.Email,
-                        enabled = authState !is AuthState.Loading
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    CustomRegisterField(
-                        label = "Número de teléfono",
-                        value = phone,
-                        onValueChange = { phone = it },
-                        placeholder = "999 999 999",
-                        icon = Icons.Default.PhoneAndroid,
-                        enabled = authState !is AuthState.Loading
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "Contraseña", fontSize = 14.sp, color = Color.DarkGray)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            placeholder = { Text("........", color = Color.Gray) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = authState !is AuthState.Loading,
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray) },
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
-                                }
-                            },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = Color.LightGray
-                            )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Contraseña", fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = { Text("........", color = Color.White.copy(alpha = 0.7f)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = authState !is AuthState.Loading,
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White) },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = null, tint = Color.White)
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            cursorColor = Color.White
                         )
-                    }
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Botón Registrarse
             Button(
-                onClick = { handleRegister() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                onClick = { 
+                    authViewModel.register(name, email, password, phone) {
+                        onRegisterClick(name, email)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                enabled = authState !is AuthState.Loading,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF38B1C))
             ) {
                 if (authState is AuthState.Loading) {
@@ -227,39 +201,33 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = onBackToLogin) {
-                Text(
-                    text = "¿Ya tienes cuenta? Inicia sesión",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("¿Ya tienes cuenta? Inicia sesión", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
 @Composable
-fun CustomRegisterField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    enabled: Boolean = true
-) {
+fun TransparentRegisterField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean = true) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = label, fontSize = 14.sp, color = Color.DarkGray)
+        Text(text = label, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
         Spacer(modifier = Modifier.height(4.dp))
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.Gray) },
+            placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.7f)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             enabled = enabled,
-            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.Gray) },
+            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.White) },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = Color.LightGray
+                focusedBorderColor = Color.White,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = Color.White
             )
         )
     }
