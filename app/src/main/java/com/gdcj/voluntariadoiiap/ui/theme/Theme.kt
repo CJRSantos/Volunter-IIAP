@@ -1,58 +1,59 @@
 package com.gdcj.voluntariadoiiap.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = IiapOrange,
-    secondary = IiapGreen,
-    tertiary = Color(0xFF81C784),
-    background = Color(0xFF121212),
-    surface = Color(0xFF1E1E1E),
-    onPrimary = Color.Black,
-    onSecondary = Color.White,
-    onTertiary = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White
+    primary = PrimaryGreen,
+    onPrimary = OnPrimaryWhite,
+    primaryContainer = PrimaryGreen,
+    onPrimaryContainer = OnPrimaryWhite,
+    secondary = SecondaryGreen,
+    onSecondary = OnSecondaryWhite,
+    secondaryContainer = SecondaryContainerGreen,
+    onSecondaryContainer = OnSecondaryContainerGreen,
+    tertiary = TertiaryGreen,
+    onTertiary = OnTertiaryWhite,
+    tertiaryContainer = TertiaryContainerGreen,
+    onTertiaryContainer = OnTertiaryContainerGreen,
+    background = Color(0xFF1A1C19),
+    surface = Color(0xFF1A1C19),
+    onBackground = Color(0xFFE2E3DD),
+    onSurface = Color(0xFFE2E3DD),
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = IiapOrange,
-    secondary = IiapGreen,
-    tertiary = Color(0xFF2E7D32),
-    background = Color(0xFFFDFDFD),
-    surface = Color.White,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = IiapDark,
-    onSurface = IiapDark
+    primary = PrimaryGreen,
+    onPrimary = OnPrimaryWhite,
+    primaryContainer = PrimaryContainerGreen,
+    onPrimaryContainer = OnPrimaryContainerGreen,
+    secondary = SecondaryGreen,
+    onSecondary = OnSecondaryWhite,
+    secondaryContainer = SecondaryContainerGreen,
+    onSecondaryContainer = OnSecondaryContainerGreen,
+    tertiary = TertiaryGreen,
+    onTertiary = OnTertiaryWhite,
+    tertiaryContainer = TertiaryContainerGreen,
+    onTertiaryContainer = OnTertiaryContainerGreen,
+    background = Color(0xFFFCFDF6),
+    surface = Color(0xFFFCFDF6),
+    onBackground = Color(0xFF1A1C19),
+    onSurface = Color(0xFF1A1C19),
 )
 
 @Composable
 fun VOLUNTARIADOIIAPTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disabled to maintain brand consistency
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

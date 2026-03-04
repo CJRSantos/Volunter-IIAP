@@ -77,4 +77,8 @@ object RetrofitClient {
     val experienceService: ExperienceApiService by lazy {
         retrofit.create(ExperienceApiService::class.java)
     }
+
+    val applicationStatusService: ApplicationStatusApiService by lazy {
+        retrofit.create(ApplicationStatusApiService::class.java)
+    }
 }

@@ -49,18 +49,16 @@ fun SkillsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            when (skillState) {
+            when (val state = skillState) {
                 is SkillListState.Loading -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is SkillListState.Success -> {
-                    val skills = (skillState as SkillListState.Success).skills
-                    SkillList(skills)
+                    SkillList(state.skills)
                 }
                 is SkillListState.Error -> {
-                    val message = (skillState as SkillListState.Error).message
                     Text(
-                        text = message,
+                        text = state.message,
                         color = Color.Red,
                         modifier = Modifier.align(Alignment.Center).padding(16.dp)
                     )
