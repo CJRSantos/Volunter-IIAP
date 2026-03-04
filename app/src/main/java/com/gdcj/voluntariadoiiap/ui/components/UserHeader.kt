@@ -84,7 +84,7 @@ fun UserHeader(
                 ) {
                     DropdownMenuItem(
                         text = { Text("Perfil", fontSize = 16.sp) },
-                        onClick = { 
+                        onClick = {
                             menuExpanded = false
                             onProfileClick()
                         },
@@ -96,7 +96,7 @@ fun UserHeader(
 
                     DropdownMenuItem(
                         text = { Text("Configuración", fontSize = 16.sp) },
-                        onClick = { 
+                        onClick = {
                             menuExpanded = false
                             // onSettingsClick() // Por implementar si es necesario
                         },

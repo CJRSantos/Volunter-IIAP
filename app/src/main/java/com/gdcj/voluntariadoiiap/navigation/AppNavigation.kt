@@ -3,13 +3,17 @@ package com.gdcj.voluntariadoiiap.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.gdcj.voluntariadoiiap.ui.components.AppBottomNavigation
+import com.gdcj.voluntariadoiiap.ui.components.UserHeader
 import com.gdcj.voluntariadoiiap.ui.screens.*
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
@@ -23,8 +27,38 @@ fun AppNavigation(
     projectViewModel: ProjectViewModel
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Definir en qué pantallas NO mostrar el encabezado
+    val hideHeaderRoutes = listOf(
+        AppScreens.LoginScreen.route,
+        AppScreens.RegisterScreen.route
+    )
+    val showHeader = currentRoute != null && !hideHeaderRoutes.contains(currentRoute)
 
     Scaffold(
+        topBar = {
+            if (showHeader) {
+                val name by authViewModel.userName.collectAsState()
+                val email by authViewModel.userEmail.collectAsState()
+                UserHeader(
+                    name = name,
+                    email = email,
+                    themeViewModel = themeViewModel,
+                    onLogoutClick = {
+                        authViewModel.logout {
+                            navController.navigate(AppScreens.LoginScreen.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    },
+                    onProfileClick = {
+                        navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
+                    }
+                )
+            }
+        },
         bottomBar = { AppBottomNavigation(navController = navController) }
     ) { innerPadding ->
         NavHost(

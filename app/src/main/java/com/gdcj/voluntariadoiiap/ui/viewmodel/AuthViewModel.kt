@@ -22,6 +22,12 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
+    private val _userName = MutableStateFlow("Usuario IIAP")
+    val userName = _userName.asStateFlow()
+
+    private val _userEmail = MutableStateFlow("")
+    val userEmail = _userEmail.asStateFlow()
+
     fun login(email: String, pass: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
@@ -32,8 +38,11 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
                     val token = body?.token ?: ""
                     sessionManager.saveAuthToken(token)
                     
+                    _userEmail.value = email
+                    // Aquí podrías setear el nombre real si la API lo devuelve
+                    
                     _authState.value = AuthState.Success("Bienvenido")
-                    onSuccess("Usuario IIAP", email)
+                    onSuccess(_userName.value, email)
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string())
                     _authState.value = AuthState.Error(errorMsg ?: "Credenciales inválidas")
@@ -48,22 +57,23 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                // Enviamos todos los campos que la UI captura
                 val response = RetrofitClient.authService.register(
                     RegisterRequest(
                         email = email, 
                         password = pass, 
                         name = name,
                         phone = phone,
-                        role_id = 1 // Por defecto rol de voluntario
+                        role_id = 1
                     )
                 )
                 if (response.isSuccessful) {
+                    _userName.value = name
+                    _userEmail.value = email
                     _authState.value = AuthState.Success("Registro exitoso")
                     onSuccess()
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string())
-                    _authState.value = AuthState.Error(errorMsg ?: "Error al registrar: ${response.code()}")
+                    _authState.value = AuthState.Error(errorMsg ?: "Error al registrar")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error de red: ${e.message}")
@@ -75,31 +85,18 @@ class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
         if (errorBody == null) return null
         return try {
             val json = JSONObject(errorBody)
-            if (json.has("message")) {
-                json.getString("message")
-            } else if (json.has("error")) {
-                json.getString("error")
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
+            if (json.has("message")) json.getString("message")
+            else if (json.has("error")) json.getString("error")
+            else null
+        } catch (e: Exception) { null }
     }
 
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            try {
-                RetrofitClient.authService.logout()
-            } catch (e: Exception) {
-            } finally {
-                sessionManager.clearSession()
-                onSuccess()
-            }
+            sessionManager.clearSession()
+            onSuccess()
         }
     }
     
-    fun isUserLoggedIn(): Boolean {
-        return sessionManager.fetchAuthToken() != null
-    }
+    fun isUserLoggedIn(): Boolean = sessionManager.fetchAuthToken() != null
 }
