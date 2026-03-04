@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,12 +16,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.gdcj.voluntariadoiiap.data.model.Area
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AreaListState
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AreaViewModel
 
 @Composable
 fun AreasScreen(
+    areaViewModel: AreaViewModel,
     name: String,
     email: String
 ) {
+    val areaState by areaViewModel.areaListState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        areaViewModel.fetchAreas()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -39,50 +49,54 @@ fun AreasScreen(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        // Lista de datos de las áreas
-        val areas = listOf(
-            AreaItem(
-                title = "Diversidad Biológica Terrestre Amazónica",
-                subtitle = "Dirección de Investigación en Diversidad Biológica",
-                description = "Investigación sobre plantas, fauna y biodiversidad terrestre amazónica."
-            ),
-            AreaItem(
-                title = "Ecosistemas Acuáticos Amazónicos",
-                subtitle = "Dirección de Investigación en Ecosistemas Acuáticos",
-                description = "Estudios sobre ambientes acuáticos, pesca sostenible, ictiología y recursos del río."
-            ),
-            AreaItem(
-                title = "Manejo Integral del Bosque y Servicios Ecosistémicos",
-                subtitle = "Dirección de Manejo Forestal",
-                description = "Investigación sobre bosques, servicios ecológicos y aprovechamiento de recursos forestales."
-            ),
-            AreaItem(
-                title = "Sociedades Amazónicas",
-                subtitle = "Dirección de Investigaciones Sociales",
-                description = "Estudios sobre culturas, comunidades indígenas, aspectos sociales y económicos amazónicos."
-            ),
-            AreaItem(
-                title = "Información y Gestión del Conocimiento",
-                subtitle = "Oficina de Gestión de Información",
-                description = "Gestión de datos, sistemas de información científica, bancos de información y apoyo al conocimiento."
-            )
-        )
-
-        // Carrusel vertical de widgets
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(areas) { area ->
-                AreaCardWidget(area)
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (val state = areaState) {
+                is AreaListState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is AreaListState.Success -> {
+                    if (state.areas.isEmpty()) {
+                        Text(
+                            text = "No hay áreas disponibles",
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        LazyColumn(
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(state.areas) { area ->
+                                AreaCardWidget(area)
+                            }
+                        }
+                    }
+                }
+                is AreaListState.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = Color.Red,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        Button(onClick = { areaViewModel.fetchAreas() }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+                else -> {}
             }
         }
     }
 }
 
 @Composable
-fun AreaCardWidget(area: AreaItem) {
+fun AreaCardWidget(area: Area) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -99,9 +113,9 @@ fun AreaCardWidget(area: AreaItem) {
                 .padding(20.dp)
                 .fillMaxWidth()
         ) {
-            // Chip de Ubicación (Estilo igual a la imagen)
+            // Chip de Ubicación
             Surface(
-                color = MaterialTheme.colorScheme.tertiary,
+                color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(50.dp),
                 modifier = Modifier.wrapContentSize()
             ) {
@@ -112,13 +126,13 @@ fun AreaCardWidget(area: AreaItem) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiary,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Sin ubicación",
-                        color = MaterialTheme.colorScheme.onTertiary,
+                        text = "IIAP Sede Central",
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -127,27 +141,29 @@ fun AreaCardWidget(area: AreaItem) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Subtítulo (Dirección)
+            // Nombre del Área (usando description como título principal)
             Text(
-                text = area.subtitle,
+                text = area.description,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 4.dp),
+                lineHeight = 24.sp
+            )
+
+            // Subtítulo genérico o información adicional si existiera
+            Text(
+                text = "Investigación y desarrollo amazónico",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 fontWeight = FontWeight.Medium
             )
 
-            // Título Principal
-            Text(
-                text = "Área de ${area.title}",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(vertical = 6.dp),
-                lineHeight = 24.sp
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Descripción
+            // Descripción detallada (si no hay otro campo, usamos un placeholder o adaptamos la descripción)
             Text(
-                text = area.description,
+                text = "Esta área se enfoca en objetivos estratégicos del IIAP relacionados con ${area.description.lowercase()}.",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 lineHeight = 20.sp,
@@ -156,9 +172,3 @@ fun AreaCardWidget(area: AreaItem) {
         }
     }
 }
-
-data class AreaItem(
-    val title: String,
-    val subtitle: String,
-    val description: String
-)

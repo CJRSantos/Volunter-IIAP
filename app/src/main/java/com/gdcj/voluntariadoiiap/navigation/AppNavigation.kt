@@ -122,13 +122,14 @@ fun AppNavigation(
                 val name = backStackEntry.arguments?.getString("name") ?: ""
                 val email = backStackEntry.arguments?.getString("email") ?: ""
                 AreasScreen(
+                    areaViewModel = areaViewModel,
                     name = name,
                     email = email
                 )
             }
 
             composable(route = AppScreens.ConvocatoriasScreen.route) {
-                ConvocatoriasScreen()
+                ConvocatoriasScreen(projectViewModel = projectViewModel)
             }
 
             composable(

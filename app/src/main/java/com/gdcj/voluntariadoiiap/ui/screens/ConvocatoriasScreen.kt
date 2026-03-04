@@ -21,32 +21,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class Convocatoria(
-    val id: Int,
-    val title: String,
-    val area: String,
-    val location: String,
-    val deadline: String,
-    val description: String,
-    val status: String // "Abierta", "Cerrada", "Próximamente"
-)
+import com.gdcj.voluntariadoiiap.data.model.Project
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ProjectListState
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ProjectViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConvocatoriasScreen() {
+fun ConvocatoriasScreen(projectViewModel: ProjectViewModel) {
     var searchQuery by remember { mutableStateOf("") }
-    
-    val allConvocatorias = listOf(
-        Convocatoria(1, "Especialista en Fauna Silvestre", "Diversidad Biológica", "Iquitos", "15 Nov 2025", "Buscamos voluntarios para apoyo en el monitoreo de jaguares en la reserva.", "Abierta"),
-        Convocatoria(2, "Analista de Suelos Amazónicos", "Manejo Forestal", "Pucallpa", "20 Nov 2025", "Investigación sobre la degradación de suelos en áreas deforestadas.", "Abierta"),
-        Convocatoria(3, "Gestor de Base de Datos", "Gestión del Conocimiento", "Iquitos", "01 Dic 2025", "Apoyo en la digitalización de archivos históricos del IIAP.", "Próximamente"),
-        Convocatoria(4, "Monitor de Calidad de Agua", "Ecosistemas Acuáticos", "Tarapoto", "10 Nov 2025", "Toma de muestras en la cuenca del río Huallaga.", "Abierta"),
-        Convocatoria(5, "Asistente de Antropología", "Sociedades Amazónicas", "Iquitos", "05 Nov 2025", "Trabajo de campo con comunidades nativas del Napo.", "Cerrada")
-    )
+    val projectState by projectViewModel.projectListState.collectAsState()
 
-    val filteredConvocatorias = allConvocatorias.filter { 
-        it.title.contains(searchQuery, ignoreCase = true) || it.area.contains(searchQuery, ignoreCase = true)
+    LaunchedEffect(Unit) {
+        projectViewModel.fetchProjects()
     }
 
     Column(
@@ -76,7 +62,7 @@ fun ConvocatoriasScreen() {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar por título o área...", color = Color.LightGray) },
+                    placeholder = { Text("Buscar por título...", color = Color.LightGray) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
@@ -92,30 +78,68 @@ fun ConvocatoriasScreen() {
             }
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(filteredConvocatorias, key = { it.id }) { convocatoria ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn(animationSpec = tween(500)) + expandVertically()
-                ) {
-                    ConvocatoriaCard(convocatoria)
+        Box(modifier = Modifier.fillMaxSize()) {
+            when (val state = projectState) {
+                is ProjectListState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
+                is ProjectListState.Success -> {
+                    val filteredProjects = state.projects.filter {
+                        it.name?.contains(searchQuery, ignoreCase = true) == true ||
+                                it.description?.contains(searchQuery, ignoreCase = true) == true
+                    }
+
+                    if (filteredProjects.isEmpty()) {
+                        Text(
+                            text = "No hay convocatorias disponibles",
+                            modifier = Modifier.align(Alignment.Center),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(filteredProjects, key = { it.id ?: 0 }) { project ->
+                                Column {
+                                    AnimatedVisibility(
+                                        visible = true,
+                                        enter = fadeIn(animationSpec = tween(500)) + expandVertically()
+                                    ) {
+                                        ConvocatoriaCard(project)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                is ProjectListState.Error -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.message,
+                            color = Color.Red,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        Button(onClick = { projectViewModel.fetchProjects() }) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+                else -> {}
             }
         }
     }
 }
 
 @Composable
-fun ConvocatoriaCard(convocatoria: Convocatoria) {
-    val statusColor = when(convocatoria.status) {
-        "Abierta" -> Color(0xFF4CAF50)
-        "Cerrada" -> Color(0xFFE91E63)
-        else -> Color(0xFFFF9800)
-    }
+fun ConvocatoriaCard(project: Project) {
+    // Asumiendo que todos los proyectos de la API están "Abiertos" por defecto para el ejemplo
+    val status = "Abierta"
+    val statusColor = Color(0xFF4CAF50)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -134,15 +158,16 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = convocatoria.status,
+                        text = status,
                         color = statusColor,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
+                // Aquí podrías mostrar el área si tuvieras la relación cargada
                 Text(
-                    text = convocatoria.area,
+                    text = "Amazonía", 
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -152,7 +177,7 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = convocatoria.title,
+                text = project.name ?: "Sin título",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -161,7 +186,7 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = convocatoria.description,
+                text = project.description ?: "Sin descripción",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 maxLines = 2
@@ -169,7 +194,7 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Divider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -177,12 +202,12 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(convocatoria.location, fontSize = 12.sp, color = Color.Gray)
+                    Text("Sede IIAP", fontSize = 12.sp, color = Color.Gray)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cierra: ${convocatoria.deadline}", fontSize = 12.sp, color = Color.Gray)
+                    Text("Cierra: ${project.endDate}", fontSize = 12.sp, color = Color.Gray)
                 }
             }
 
@@ -191,8 +216,7 @@ fun ConvocatoriaCard(convocatoria: Convocatoria) {
             Button(
                 onClick = { /* TODO */ },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                enabled = convocatoria.status == "Abierta"
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Postular ahora")
             }
