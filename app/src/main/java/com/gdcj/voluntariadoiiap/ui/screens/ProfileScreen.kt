@@ -45,7 +45,7 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // Cabecera del Perfil (Estilo de la foto)
+        // Cabecera del Perfil
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -65,16 +65,6 @@ fun ProfileScreen(
                 modifier = Modifier.padding(16.dp).align(Alignment.TopStart)
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.White)
-            }
-
-            // Botón Configuración
-            IconButton(
-                onClick = { /* onSettingsClick */ },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-            ) {
-                Icon(Icons.Default.Settings, contentDescription = "Configuración", tint = Color.White)
             }
 
             // Foto de Perfil y Nombres
@@ -150,7 +140,7 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Pestañas (Estilo de la foto)
+        // Pestañas
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,

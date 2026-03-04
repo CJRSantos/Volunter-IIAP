@@ -33,9 +33,13 @@ fun AppNavigation(
     // Definir en qué pantallas NO mostrar el encabezado
     val hideHeaderRoutes = listOf(
         AppScreens.LoginScreen.route,
-        AppScreens.RegisterScreen.route
+        AppScreens.RegisterScreen.route,
+        AppScreens.ProfileScreen.route
     )
-    val showHeader = currentRoute != null && !hideHeaderRoutes.contains(currentRoute)
+    
+    val showHeader = currentRoute != null && hideHeaderRoutes.none { route -> 
+        currentRoute.startsWith(route.split("?")[0]) 
+    }
 
     Scaffold(
         topBar = {
@@ -116,7 +120,7 @@ fun AppNavigation(
                         }
                     },
                     onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
-                    onNavigateToProfile = { 
+                    onProfileClick = {
                         navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
                     }
                 )
