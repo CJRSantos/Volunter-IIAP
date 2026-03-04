@@ -65,6 +65,7 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Quitamos el UserHeader de aquí porque ya está en el Scaffold de AppNavigation
         item { WelcomeHeroCard(onActionClick = onNavigateToInfo) }
         
         item { SectionHeader("Noticias Recientes") }
@@ -208,7 +209,11 @@ fun VideoCarousel() {
     val context = LocalContext.current
     val videos = listOf(
         VideoItem("01", "Niñas en la Ciencia", "7-gDLBYwAcc", "https://www.youtube.com/watch?v=7-gDLBYwAcc"),
-        VideoItem("02", "Logros del IIAP 2025", "oTxwous9uGs", "https://www.youtube.com/watch?v=oTxwous9uGs")
+        VideoItem("02", "Logros del IIAP 2025", "oTxwous9uGs", "https://www.youtube.com/watch?v=oTxwous9uGs"),
+        VideoItem("03", "Jane Goodall en el IIAP: una voz que inspira", "5xSmXSLrRI0", "https://www.youtube.com/watch?v=5xSmXSLrRI0"),
+        VideoItem("04", "Inauguración del IIAP Sede Tingo María", "NMF_35Q4nCU", "https://www.youtube.com/watch?v=NMF_35Q4nCU"),
+        VideoItem("05", "APEC 2024: Una Semana Histórica", "5gdt_gml7o4", "https://www.youtube.com/watch?v=5gdt_gml7o4"),
+        VideoItem("06", "IIAP", "saEzfUc_JLo", "https://www.youtube.com/watch?v=saEzfUc_JLo")
     )
 
     LazyRow(
@@ -275,7 +280,11 @@ fun SocialMediaList() {
         SocialMediaData(R.drawable.ic_facebook, "Facebook", Color(0xFF1877F2), "https://www.facebook.com/IIAPPERU/"),
         SocialMediaData(R.drawable.ic_instagram, "Instagram", Color(0xFFE4405F), "https://www.instagram.com/iiapperu/?hl=es"),
         SocialMediaData(R.drawable.ic_x, "X (Twitter)", Color(0xFF000000), "https://x.com/IiapPeru"),
-        SocialMediaData(R.drawable.ic_youtube, "YouTube", Color(0xFFFF0000), "https://www.youtube.com/channel/UC7h_V_SOwW0wRsmhf00lAsA")
+        SocialMediaData(R.drawable.ic_spotify, "Spotify", Color(0xFF1DB954), "https://open.spotify.com/show/22EKStrMUkA8MciXSj9EaE?si=4e51ebc4ad974d4b"),
+        SocialMediaData(R.drawable.ic_linkedin, "LinkedIn", Color(0xFF0A66C2), "https://pe.linkedin.com/company/instituto-de-investigaci%C3%B3n-de-la-amazon%C3%ADa-peruana-iiap"),
+        SocialMediaData(R.drawable.ic_youtube, "YouTube", Color(0xFFFF0000), "https://www.youtube.com/channel/UC7h_V_SOwW0wRsmhf00lAsA"),
+        SocialMediaData(R.drawable.ic_tiktok, "TikTok", Color(0xFF000000), "https://www.tiktok.com/@iiapperu?_r=1&_t=ZS-94FGzy7jFOq"),
+        SocialMediaData(R.drawable.ic_web, "Sitio Web", Color(0xFF008000), "https://www.gob.pe/iiap")
     )
 
     LazyRow(

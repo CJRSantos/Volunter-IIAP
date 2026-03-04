@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,12 +21,14 @@ import com.gdcj.voluntariadoiiap.data.model.Area
 import com.gdcj.voluntariadoiiap.ui.viewmodel.AreaListState
 import com.gdcj.voluntariadoiiap.ui.viewmodel.AreaViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AreasScreen(
     areaViewModel: AreaViewModel,
     name: String,
     email: String
 ) {
+    var searchQuery by remember { mutableStateOf("") }
     val areaState by areaViewModel.areaListState.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -37,17 +40,43 @@ fun AreasScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Título de la pantalla
-        Text(
-            text = "Áreas",
-            fontSize = 26.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp, bottom = 8.dp),
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        // Cabecera con Búsqueda (Estilo Convocatorias)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primary,
+            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Áreas",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+                Text(
+                    text = "Explora nuestras unidades de investigación",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Buscar área...", color = Color.LightGray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        focusedBorderColor = Color.White,
+                        cursorColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedTextColor = Color.White
+                    ),
+                    singleLine = true
+                )
+            }
+        }
 
         Box(modifier = Modifier.fillMaxSize()) {
             when (val state = areaState) {
@@ -55,9 +84,13 @@ fun AreasScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 is AreaListState.Success -> {
-                    if (state.areas.isEmpty()) {
+                    val filteredAreas = state.areas.filter {
+                        it.description.contains(searchQuery, ignoreCase = true)
+                    }
+
+                    if (filteredAreas.isEmpty()) {
                         Text(
-                            text = "No hay áreas disponibles",
+                            text = if (searchQuery.isEmpty()) "No hay áreas disponibles" else "No se encontraron áreas",
                             modifier = Modifier.align(Alignment.Center),
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
@@ -67,7 +100,7 @@ fun AreasScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(state.areas) { area ->
+                            items(filteredAreas) { area ->
                                 AreaCardWidget(area)
                             }
                         }
