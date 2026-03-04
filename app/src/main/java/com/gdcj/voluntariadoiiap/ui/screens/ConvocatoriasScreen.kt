@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -18,21 +19,66 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gdcj.voluntariadoiiap.data.model.Project
-import com.gdcj.voluntariadoiiap.ui.viewmodel.ProjectListState
-import com.gdcj.voluntariadoiiap.ui.viewmodel.ProjectViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConvocatoriasScreen(projectViewModel: ProjectViewModel) {
+fun ConvocatoriasScreen(
+    projectViewModel: ProjectViewModel,
+    authViewModel: AuthViewModel,
+    applicationViewModel: ApplicationViewModel = viewModel()
+) {
     var searchQuery by remember { mutableStateOf("") }
     val projectState by projectViewModel.projectListState.collectAsState()
+    val applicationState by applicationViewModel.operationState.collectAsState()
+    val context = LocalContext.current
+
+    var selectedProject by remember { mutableStateOf<Project?>(null) }
+    var showApplyDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         projectViewModel.fetchProjects()
+    }
+
+    LaunchedEffect(applicationState) {
+        when (applicationState) {
+            is ApplicationOperationState.Success -> {
+                Toast.makeText(context, (applicationState as ApplicationOperationState.Success).message, Toast.LENGTH_LONG).show()
+                applicationViewModel.resetState()
+                showApplyDialog = false
+            }
+            is ApplicationOperationState.Error -> {
+                Toast.makeText(context, (applicationState as ApplicationOperationState.Error).message, Toast.LENGTH_LONG).show()
+                applicationViewModel.resetState()
+            }
+            else -> {}
+        }
+    }
+
+    if (showApplyDialog && selectedProject != null) {
+        ApplyDialog(
+            project = selectedProject!!,
+            onDismiss = { showApplyDialog = false },
+            onConfirm = { motivation ->
+                val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
+                // Nota: El user_id debería venir del perfil del usuario logueado. 
+                // Por ahora usamos un ID genérico o deberíamos obtenerlo del AuthViewModel si estuviera disponible.
+                // Idealmente la API debería identificar al usuario por el Token.
+                applicationViewModel.applyToProject(
+                    token = token,
+                    userId = 1, // <--- TODO: Obtener el ID real del usuario logueado
+                    projectId = selectedProject?.id ?: 0,
+                    motivation = motivation
+                )
+            },
+            isLoading = applicationState is ApplicationOperationState.Loading
+        )
     }
 
     Column(
@@ -107,7 +153,13 @@ fun ConvocatoriasScreen(projectViewModel: ProjectViewModel) {
                                         visible = true,
                                         enter = fadeIn(animationSpec = tween(500)) + expandVertically()
                                     ) {
-                                        ConvocatoriaCard(project)
+                                        ConvocatoriaCard(
+                                            project = project,
+                                            onApplyClick = {
+                                                selectedProject = project
+                                                showApplyDialog = true
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -136,8 +188,7 @@ fun ConvocatoriasScreen(projectViewModel: ProjectViewModel) {
 }
 
 @Composable
-fun ConvocatoriaCard(project: Project) {
-    // Asumiendo que todos los proyectos de la API están "Abiertos" por defecto para el ejemplo
+fun ConvocatoriaCard(project: Project, onApplyClick: () -> Unit) {
     val status = "Abierta"
     val statusColor = Color(0xFF4CAF50)
 
@@ -165,7 +216,6 @@ fun ConvocatoriaCard(project: Project) {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                // Aquí podrías mostrar el área si tuvieras la relación cargada
                 Text(
                     text = "Amazonía", 
                     fontSize = 12.sp,
@@ -214,7 +264,7 @@ fun ConvocatoriaCard(project: Project) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { /* TODO */ },
+                onClick = onApplyClick,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -222,4 +272,54 @@ fun ConvocatoriaCard(project: Project) {
             }
         }
     }
+}
+
+@Composable
+fun ApplyDialog(
+    project: Project,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    isLoading: Boolean
+) {
+    var motivation by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Postular a: ${project.name}") },
+        text = {
+            Column {
+                Text(
+                    text = "¿Por qué deseas participar en este proyecto?",
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = motivation,
+                    onValueChange = { motivation = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    placeholder = { Text("Escribe tu motivación aquí...") },
+                    maxLines = 5
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(motivation) },
+                enabled = motivation.isNotBlank() && !isLoading
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                } else {
+                    Text("Enviar Postulación")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text("Cancelar")
+            }
+        }
+    )
 }

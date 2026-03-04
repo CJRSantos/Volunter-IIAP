@@ -163,7 +163,10 @@ fun AppNavigation(
             }
 
             composable(route = AppScreens.ConvocatoriasScreen.route) {
-                ConvocatoriasScreen(projectViewModel = projectViewModel)
+                ConvocatoriasScreen(
+                    projectViewModel = projectViewModel,
+                    authViewModel = authViewModel
+                )
             }
 
             composable(

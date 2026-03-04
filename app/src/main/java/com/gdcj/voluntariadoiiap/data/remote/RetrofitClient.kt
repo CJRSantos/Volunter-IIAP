@@ -81,4 +81,8 @@ object RetrofitClient {
     val applicationStatusService: ApplicationStatusApiService by lazy {
         retrofit.create(ApplicationStatusApiService::class.java)
     }
+
+    val applicationService: ApplicationApiService by lazy {
+        retrofit.create(ApplicationApiService::class.java)
+    }
 }

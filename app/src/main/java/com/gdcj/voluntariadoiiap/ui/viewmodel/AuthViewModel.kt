@@ -18,7 +18,7 @@ sealed class AuthState {
     data class Error(val message: String) : AuthState()
 }
 
-class AuthViewModel(private val sessionManager: SessionManager) : ViewModel() {
+class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
