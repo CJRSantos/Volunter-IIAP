@@ -1,13 +1,12 @@
 package com.gdcj.voluntariadoiiap.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,26 +29,26 @@ fun AppDrawerContent(
     email: String,
     authViewModel: AuthViewModel,
     onProfileClick: () -> Unit,
-    onLogoutClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onLogoutClick: () -> Unit
 ) {
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
 
-    ModalDrawerSheet(
-        drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp)
+    Surface(
+        modifier = Modifier.fillMaxHeight().width(300.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
+        tonalElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .padding(16.dp)
         ) {
-            // Header del Drawer (Estilo Facebook)
+            // Header del Drawer
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp)
-                    .clickable { onProfileClick() },
+                    .padding(vertical = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -82,11 +81,6 @@ fun AppDrawerContent(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "Ver tu perfil",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
                 }
             }
 
@@ -98,18 +92,13 @@ fun AppDrawerContent(
                 label = "Perfil",
                 onClick = onProfileClick
             )
-            DrawerItem(
-                icon = Icons.Outlined.Settings,
-                label = "Configuración",
-                onClick = onSettingsClick
-            )
             
             Spacer(modifier = Modifier.weight(1f))
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             DrawerItem(
-                icon = Icons.Default.ExitToApp,
+                icon = Icons.AutoMirrored.Filled.ExitToApp,
                 label = "Cerrar sesión",
                 iconColor = Color(0xFFE57373),
                 labelColor = Color(0xFFE57373),

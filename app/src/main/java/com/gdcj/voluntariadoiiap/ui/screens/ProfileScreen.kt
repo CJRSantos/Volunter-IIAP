@@ -127,9 +127,8 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
-                        IconButton(onClick = { /* Settings */ }) {
-                            Icon(Icons.Default.Settings, "Configuración", tint = Color.White)
-                        }
+                        // Logo de configuración eliminado de aquí
+                        Spacer(modifier = Modifier.size(48.dp))
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
