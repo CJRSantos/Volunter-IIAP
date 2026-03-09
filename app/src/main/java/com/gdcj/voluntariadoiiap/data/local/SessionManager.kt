@@ -14,8 +14,22 @@ class SessionManager(context: Context) {
         return prefs.getString("auth_token", null)
     }
 
+    fun saveUserId(id: Int) {
+        prefs.edit().putInt("user_id", id).apply()
+    }
+
+    fun fetchUserId(): Int {
+        return prefs.getInt("user_id", -1)
+    }
+
+    fun saveUserData(name: String, email: String) {
+        prefs.edit().putString("user_name", name).putString("user_email", email).apply()
+    }
+
+    fun fetchUserName(): String? = prefs.getString("user_name", null)
+    fun fetchUserEmail(): String? = prefs.getString("user_email", null)
+
     fun clearSession() {
         prefs.edit().clear().apply()
     }
 }
-

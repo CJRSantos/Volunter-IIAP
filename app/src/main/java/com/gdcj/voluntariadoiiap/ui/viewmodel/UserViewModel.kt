@@ -2,6 +2,8 @@ package com.gdcj.voluntariadoiiap.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.gdcj.voluntariadoiiap.data.model.Experience
+import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +41,12 @@ class UserViewModel : ViewModel() {
     private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
     val operationState = _operationState.asStateFlow()
 
+    private val _userStudies = MutableStateFlow<List<Study>>(emptyList())
+    val userStudies = _userStudies.asStateFlow()
+
+    private val _userExperiences = MutableStateFlow<List<Experience>>(emptyList())
+    val userExperiences = _userExperiences.asStateFlow()
+
     fun fetchUsers(token: String) {
         viewModelScope.launch {
             _userListState.value = UserListState.Loading
@@ -64,12 +72,38 @@ class UserViewModel : ViewModel() {
                 val response = RetrofitClient.userService.getUserById(authToken, id)
                 if (response.isSuccessful && response.body() != null) {
                     _userDetailState.value = UserDetailState.Success(response.body()!!)
+                    fetchUserStudies(token, id)
+                    fetchUserExperiences(token, id)
                 } else {
                     _userDetailState.value = UserDetailState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
                 _userDetailState.value = UserDetailState.Error(e.message ?: "Error desconocido")
             }
+        }
+    }
+
+    fun fetchUserStudies(token: String, userId: Int) {
+        viewModelScope.launch {
+            try {
+                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                val response = RetrofitClient.userService.getUserStudies(authToken, userId)
+                if (response.isSuccessful) {
+                    _userStudies.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    fun fetchUserExperiences(token: String, userId: Int) {
+        viewModelScope.launch {
+            try {
+                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                val response = RetrofitClient.userService.getUserExperiences(authToken, userId)
+                if (response.isSuccessful) {
+                    _userExperiences.value = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) { }
         }
     }
 
@@ -99,7 +133,7 @@ class UserViewModel : ViewModel() {
                 val response = RetrofitClient.userService.updateUser(authToken, id, user)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Usuario actualizado")
-                    fetchUsers(token)
+                    _userDetailState.value = UserDetailState.Success(response.body()!!)
                 } else {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }

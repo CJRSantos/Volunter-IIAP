@@ -23,11 +23,14 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
-    private val _userName = MutableStateFlow("Usuario IIAP")
+    private val _userName = MutableStateFlow(sessionManager.fetchUserName() ?: "Usuario IIAP")
     val userName = _userName.asStateFlow()
 
-    private val _userEmail = MutableStateFlow("")
+    private val _userEmail = MutableStateFlow(sessionManager.fetchUserEmail() ?: "")
     val userEmail = _userEmail.asStateFlow()
+
+    private val _userId = MutableStateFlow(sessionManager.fetchUserId())
+    val userId = _userId.asStateFlow()
 
     // Estado global para la foto de perfil
     private val _profilePictureUri = MutableStateFlow<Uri?>(null)
@@ -48,6 +51,10 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     sessionManager.saveAuthToken(token)
                     
                     _userEmail.value = email
+                    sessionManager.saveUserData(_userName.value, email)
+                    
+                    // Intentar obtener el ID del usuario buscando por email
+                    fetchAndSaveUserInfo(token, email)
                     
                     _authState.value = AuthState.Success("Bienvenido")
                     onSuccess(_userName.value, email)
@@ -58,6 +65,26 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Error de conexión: ${e.message}")
             }
+        }
+    }
+
+    private suspend fun fetchAndSaveUserInfo(token: String, email: String) {
+        try {
+            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
+            val usersResponse = RetrofitClient.userService.getUsers(authToken)
+            if (usersResponse.isSuccessful) {
+                val user = usersResponse.body()?.find { it.email == email }
+                if (user != null) {
+                    user.id?.let { 
+                        _userId.value = it
+                        sessionManager.saveUserId(it)
+                    }
+                    _userName.value = user.name
+                    sessionManager.saveUserData(user.name, email)
+                }
+            }
+        } catch (e: Exception) {
+            // Error silencioso al buscar info extra
         }
     }
 
@@ -77,6 +104,7 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                 if (response.isSuccessful) {
                     _userName.value = name
                     _userEmail.value = email
+                    sessionManager.saveUserData(name, email)
                     _authState.value = AuthState.Success("Registro exitoso")
                     onSuccess()
                 } else {
@@ -102,6 +130,9 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
             sessionManager.clearSession()
+            _userName.value = "Usuario IIAP"
+            _userEmail.value = ""
+            _userId.value = -1
             onSuccess()
         }
     }

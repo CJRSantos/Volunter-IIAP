@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gdcj.voluntariadoiiap.data.model.Experience
 import com.gdcj.voluntariadoiiap.data.model.Study
+import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,29 +50,49 @@ fun ProfileScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
+    val userId = authViewModel.userId.collectAsState().value
+    
+    val userDetailState by userViewModel.userDetailState.collectAsState()
+    val userStudies by userViewModel.userStudies.collectAsState()
+    val userExperiences by userViewModel.userExperiences.collectAsState()
+    val operationState by userViewModel.operationState.collectAsState()
+
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Perfil", "Formación", "Experiencia", "Logros")
     
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheetType by remember { mutableStateOf<SheetType?>(null) }
 
-    // Estados para la información personal
-    var profileName by remember { mutableStateOf(name) }
-    var birthDate by remember { mutableStateOf("12 de Mayo, 1998") }
-    var phone by remember { mutableStateOf("+51 987 654 321") }
-    var gender by remember { mutableStateOf("Masculino") }
-    var location by remember { mutableStateOf("Iquitos, Loreto") }
-    var bio by remember { mutableStateOf("Apasionado por la conservación de la biodiversidad amazónica. Busco contribuir con mis conocimientos en ingeniería forestal para los proyectos de reforestación del IIAP.") }
+    // Sincronizar con el backend al iniciar
+    LaunchedEffect(userId) {
+        if (userId != -1) {
+            userViewModel.fetchUserById(token, userId)
+        }
+    }
 
-    // Listas reactivas para actualización en tiempo real
-    val academicList = remember { mutableStateListOf<Study>(
-        Study(id = 1, institution = "UNAP", degree = "Ingeniería Forestal", fieldOfStudy = "Recursos Naturales", startDate = "2016", endDate = "2021", user_id = 1),
-        Study(id = 2, institution = "IIAP", degree = "Diplomado en Carbono", fieldOfStudy = "Ecología", startDate = "2022", endDate = "2022", user_id = 1)
-    )}
+    LaunchedEffect(operationState) {
+        if (operationState is OperationState.Success) {
+            Toast.makeText(context, (operationState as OperationState.Success).message, Toast.LENGTH_SHORT).show()
+            userViewModel.resetOperationState()
+            if (userId != -1) {
+                userViewModel.fetchUserById(token, userId)
+            }
+        } else if (operationState is OperationState.Error) {
+            Toast.makeText(context, (operationState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
+            userViewModel.resetOperationState()
+        }
+    }
 
-    val experienceList = remember { mutableStateListOf<Experience>(
-        Experience(id = 1, company = "SERNANP", position = "Asistente de Campo", description = "Apoyo en el monitoreo de fauna silvestre en la reserva Pacaya Samiria.", startDate = "2021", endDate = "2022", user_id = 1)
-    )}
+    // Datos del usuario (con valores por defecto mientras carga)
+    val currentUser = (userDetailState as? UserDetailState.Success)?.user
+    val profileName = currentUser?.name ?: name
+    val profileEmail = currentUser?.email ?: email
+    val birthDate = currentUser?.birthDate ?: "Sin especificar"
+    val phone = currentUser?.phone ?: "Sin especificar"
+    val gender = currentUser?.gender ?: "Sin especificar"
+    val location = currentUser?.location ?: "Sin especificar"
+    val bio = currentUser?.bio ?: "Sin biografía disponible."
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val secondaryColor = MaterialTheme.colorScheme.secondary
@@ -162,7 +183,7 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(text = profileName, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                    Text(text = email, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)
+                    Text(text = profileEmail, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)
                     
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -171,67 +192,77 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatItem("Postulaciones", "12")
+                        StatItem("Postulaciones", "0")
                         StatDivider()
-                        StatItem("Horas", "45h")
+                        StatItem("Horas", "0h")
                         StatDivider()
-                        StatItem("Nivel", "Oro")
+                        StatItem("Nivel", "Bronce")
                     }
                 }
             }
 
-            // Pestañas Estilizadas
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.Transparent,
-                contentColor = primaryColor,
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = primaryColor,
-                        height = 3.dp
-                    )
-                },
-                divider = {}
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = {
-                            Text(
-                                text = title,
-                                fontSize = 13.sp,
-                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTab == index) primaryColor else Color.Gray
-                            )
-                        }
-                    )
+            if (userDetailState is UserDetailState.Loading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-            }
+            } else {
+                // Pestañas Estilizadas
+                TabRow(
+                    selectedTabIndex = selectedTab,
+                    containerColor = Color.Transparent,
+                    contentColor = primaryColor,
+                    indicator = { tabPositions ->
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = primaryColor,
+                            height = 3.dp
+                        )
+                    },
+                    divider = {}
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = {
+                                Text(
+                                    text = title,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (selectedTab == index) primaryColor else Color.Gray
+                                )
+                            }
+                        )
+                    }
+                }
 
-            Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
-                when (selectedTab) {
-                    0 -> InfoPersonalContent(
-                        name = profileName,
-                        birthDate = birthDate,
-                        phone = phone,
-                        gender = gender,
-                        location = location,
-                        bio = bio,
-                        onEditClick = { showSheetType = SheetType.PERSONAL }
-                    )
-                    1 -> FormacionContent(
-                        studies = academicList,
-                        onAddClick = { showSheetType = SheetType.STUDY },
-                        onDelete = { academicList.remove(it) }
-                    )
-                    2 -> ExperienciaContent(
-                        experiences = experienceList,
-                        onAddClick = { showSheetType = SheetType.EXPERIENCE },
-                        onDelete = { experienceList.remove(it) }
-                    )
-                    else -> LogrosContent()
+                Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
+                    when (selectedTab) {
+                        0 -> InfoPersonalContent(
+                            name = profileName,
+                            birthDate = birthDate,
+                            phone = phone,
+                            gender = gender,
+                            location = location,
+                            bio = bio,
+                            onEditClick = { showSheetType = SheetType.PERSONAL }
+                        )
+                        1 -> FormacionContent(
+                            studies = userStudies,
+                            onAddClick = { showSheetType = SheetType.STUDY },
+                            onDelete = { study ->
+                                study.id?.let { studyViewModel.deleteStudy(token, it) }
+                            }
+                        )
+                        2 -> ExperienciaContent(
+                            experiences = userExperiences,
+                            onAddClick = { showSheetType = SheetType.EXPERIENCE },
+                            onDelete = { exp ->
+                                exp.id?.let { experienceViewModel.deleteExperience(token, it) }
+                            }
+                        )
+                        else -> LogrosContent()
+                    }
                 }
             }
         }
@@ -257,34 +288,36 @@ fun ProfileScreen(
                         currentBio = bio,
                         onDismiss = { showSheetType = null },
                         onSave = { n, bd, p, g, l, b ->
-                            profileName = n
-                            birthDate = bd
-                            phone = p
-                            gender = g
-                            location = l
-                            bio = b
+                            if (userId != -1) {
+                                val updatedUser = currentUser?.copy(
+                                    name = n,
+                                    birthDate = bd,
+                                    phone = p,
+                                    gender = g,
+                                    location = l,
+                                    bio = b
+                                ) ?: User(id = userId, name = n, email = email, birthDate = bd, phone = p, gender = g, location = l, bio = b)
+                                userViewModel.updateUser(token, userId, updatedUser)
+                            }
                             showSheetType = null
-                            Toast.makeText(context, "Información actualizada", Toast.LENGTH_SHORT).show()
                         }
                     )
                     SheetType.STUDY -> StudyForm(
                         onDismiss = { showSheetType = null },
                         onSave = { study ->
-                            academicList.add(study)
-                            val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
-                            studyViewModel.createStudy(token, study)
+                            if (userId != -1) {
+                                studyViewModel.createStudy(token, study.copy(user_id = userId))
+                            }
                             showSheetType = null
-                            Toast.makeText(context, "Información académica registrada", Toast.LENGTH_SHORT).show()
                         }
                     )
                     SheetType.EXPERIENCE -> ExperienceForm(
                         onDismiss = { showSheetType = null },
                         onSave = { exp ->
-                            experienceList.add(exp)
-                            val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
-                            experienceViewModel.createExperience(token, exp)
+                            if (userId != -1) {
+                                experienceViewModel.createExperience(token, exp.copy(user_id = userId))
+                            }
                             showSheetType = null
-                            Toast.makeText(context, "Experiencia laboral registrada", Toast.LENGTH_SHORT).show()
                         }
                     )
                     null -> {}
@@ -673,7 +706,7 @@ fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
                 fieldOfStudy = field, 
                 startDate = startYear, 
                 endDate = if(endYear.isBlank()) "Presente" else endYear, 
-                user_id = 1
+                user_id = -1 // Se asignará en ProfileScreen
             ))
         }
         Spacer(modifier = Modifier.height(40.dp))
@@ -721,7 +754,7 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
                 description = desc, 
                 startDate = startYear, 
                 endDate = if(endYear.isBlank()) "Presente" else endYear,
-                user_id = 1
+                user_id = -1 // Se asignará en ProfileScreen
             ))
         }
         Spacer(modifier = Modifier.height(40.dp))
