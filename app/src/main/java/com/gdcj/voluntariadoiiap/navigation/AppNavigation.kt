@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -30,6 +31,10 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Instanciar los nuevos ViewModels necesarios
+    val studyViewModel: StudyViewModel = viewModel()
+    val experienceViewModel: ExperienceViewModel = viewModel()
+
     // Definir en qué pantallas NO mostrar el encabezado
     val hideHeaderRoutes = listOf(
         AppScreens.LoginScreen.route,
@@ -49,6 +54,7 @@ fun AppNavigation(
                 UserHeader(
                     name = name,
                     email = email,
+                    authViewModel = authViewModel,
                     themeViewModel = themeViewModel,
                     onLogoutClick = {
                         authViewModel.logout {
@@ -143,9 +149,9 @@ fun AppNavigation(
                     name = name,
                     email = email,
                     userViewModel = userViewModel,
-                    roleViewModel = roleViewModel,
-                    areaViewModel = areaViewModel,
-                    projectViewModel = projectViewModel,
+                    authViewModel = authViewModel,
+                    studyViewModel = studyViewModel,
+                    experienceViewModel = experienceViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }

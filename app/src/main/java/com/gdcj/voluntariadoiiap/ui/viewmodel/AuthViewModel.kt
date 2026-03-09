@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
@@ -28,6 +29,14 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _userEmail = MutableStateFlow("")
     val userEmail = _userEmail.asStateFlow()
 
+    // Estado global para la foto de perfil
+    private val _profilePictureUri = MutableStateFlow<Uri?>(null)
+    val profilePictureUri = _profilePictureUri.asStateFlow()
+
+    fun updateProfilePicture(uri: Uri?) {
+        _profilePictureUri.value = uri
+    }
+
     fun login(email: String, pass: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
@@ -39,7 +48,6 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     sessionManager.saveAuthToken(token)
                     
                     _userEmail.value = email
-                    // Aquí podrías setear el nombre real si la API lo devuelve
                     
                     _authState.value = AuthState.Success("Bienvenido")
                     onSuccess(_userName.value, email)
