@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -37,15 +38,15 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    var showRightMenu by remember { mutableStateOf(false) }
+    var showMenuOverlay by remember { mutableStateOf(false) }
+    var showProfileOverlay by remember { mutableStateOf(false) }
 
     val studyViewModel: StudyViewModel = viewModel()
     val experienceViewModel: ExperienceViewModel = viewModel()
 
     val hideHeaderRoutes = listOf(
         AppScreens.LoginScreen.route,
-        AppScreens.RegisterScreen.route,
-        AppScreens.ProfileScreen.route
+        AppScreens.RegisterScreen.route
     )
     
     val showHeader = currentRoute != null && hideHeaderRoutes.none { route -> 
@@ -59,7 +60,15 @@ fun AppNavigation(
         if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
     }
 
-    // CAPA SUPERIOR PARA EL MENÚ
+    BackHandler(enabled = showMenuOverlay || showProfileOverlay) {
+        if (showProfileOverlay) {
+            showProfileOverlay = false
+            showMenuOverlay = true
+        } else {
+            showMenuOverlay = false
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -68,7 +77,7 @@ fun AppNavigation(
                         name = name,
                         email = email,
                         authViewModel = authViewModel,
-                        onMenuClick = { showRightMenu = true }
+                        onMenuClick = { showMenuOverlay = true }
                     )
                 }
             },
@@ -82,11 +91,7 @@ fun AppNavigation(
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = startDestination,
-                    enterTransition = { fadeIn(tween(300)) + scaleIn(initialScale = 0.98f) },
-                    exitTransition = { fadeOut(tween(300)) },
-                    popEnterTransition = { fadeIn(tween(300)) },
-                    popExitTransition = { fadeOut(tween(300)) + scaleOut(targetScale = 0.98f) }
+                    startDestination = startDestination
                 ) {
                     composable(AppScreens.LoginScreen.route) {
                         LoginScreen(
@@ -99,7 +104,6 @@ fun AppNavigation(
                             onRegisterClick = { navController.navigate(AppScreens.RegisterScreen.route) }
                         )
                     }
-
                     composable(AppScreens.RegisterScreen.route) {
                         RegisterScreen(
                             authViewModel = authViewModel,
@@ -112,114 +116,75 @@ fun AppNavigation(
                         )
                     }
 
+                    val mainScreenFade = fadeIn(animationSpec = tween(300))
+                    val mainScreenExit = fadeOut(animationSpec = tween(300))
+
                     composable(
                         route = AppScreens.HomeScreen.route,
-                        arguments = listOf(
-                            navArgument("name") { defaultValue = "" },
-                            navArgument("email") { defaultValue = "" }
-                        )
+                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
+                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
                     ) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
-                        HomeScreen(
-                            name = n, email = e,
-                            themeViewModel = themeViewModel,
-                            authViewModel = authViewModel,
-                            onLogoutNavigate = { 
-                                navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } }
-                            },
+                        HomeScreen(name = n, email = e, themeViewModel = themeViewModel, authViewModel = authViewModel,
+                            onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } },
                             onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
-                            onProfileClick = { navController.navigate(AppScreens.ProfileScreen.createRoute(n, e)) }
+                            onProfileClick = { showProfileOverlay = true }
                         )
                     }
 
-                    composable(AppScreens.AdditionalInfoScreen.route) {
-                        AdditionalInfoScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    composable(
-                        route = AppScreens.ProfileScreen.route,
-                        arguments = listOf(
-                            navArgument("name") { defaultValue = "" },
-                            navArgument("email") { defaultValue = "" }
-                        )
-                    ) { backStackEntry ->
-                        val n = backStackEntry.arguments?.getString("name") ?: ""
-                        val e = backStackEntry.arguments?.getString("email") ?: ""
-                        ProfileScreen(
-                            name = n, email = e,
-                            userViewModel = userViewModel,
-                            authViewModel = authViewModel,
-                            studyViewModel = studyViewModel,
-                            experienceViewModel = experienceViewModel,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(
-                        route = AppScreens.AreasScreen.route,
-                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
+                    composable(route = AppScreens.AreasScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
+                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
                     ) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
                         AreasScreen(areaViewModel = areaViewModel, name = n, email = e)
                     }
 
-                    composable(route = AppScreens.ConvocatoriasScreen.route) {
+                    composable(route = AppScreens.ConvocatoriasScreen.route, enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }) {
                         ConvocatoriasScreen(projectViewModel = projectViewModel, authViewModel = authViewModel)
                     }
 
-                    composable(
-                        route = AppScreens.NosotrosScreen.route,
-                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
+                    composable(route = AppScreens.NosotrosScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
+                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
                     ) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
                         NosotrosScreen(name = n, email = e)
                     }
+                    
+                    composable(AppScreens.AdditionalInfoScreen.route) { AdditionalInfoScreen(onBackClick = { navController.popBackStack() }) }
                 }
             }
         }
 
-        // MENÚ SOBRE TODA LA PANTALLA (Incluso sobre las barras)
+        // CAPA DE OVERLAYS (MENÚ Y PERFIL)
         if (showHeader) {
-            AnimatedVisibility(
-                visible = showRightMenu,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { showRightMenu = false }
+            AnimatedVisibility(visible = showMenuOverlay || showProfileOverlay, enter = fadeIn(), exit = fadeOut()) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { 
+                    showMenuOverlay = false
+                    showProfileOverlay = false
+                })
+            }
+
+            AnimatedVisibility(visible = showMenuOverlay, enter = slideInHorizontally(initialOffsetX = { it }), exit = slideOutHorizontally(targetOffsetX = { it }), modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()) {
+                AppDrawerContent(
+                    name = name, email = email, authViewModel = authViewModel,
+                    onProfileClick = { showMenuOverlay = false; showProfileOverlay = true },
+                    onLogoutClick = {
+                        showMenuOverlay = false
+                        authViewModel.logout { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } }
+                    }
                 )
             }
 
-            AnimatedVisibility(
-                visible = showRightMenu,
-                enter = slideInHorizontally(initialOffsetX = { it }),
-                exit = slideOutHorizontally(targetOffsetX = { it }),
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                AppDrawerContent(
-                    name = name,
-                    email = email,
-                    authViewModel = authViewModel,
-                    onProfileClick = {
-                        showRightMenu = false
-                        navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
-                    },
-                    onLogoutClick = {
-                        showRightMenu = false
-                        authViewModel.logout {
-                            navController.navigate(AppScreens.LoginScreen.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
+            AnimatedVisibility(visible = showProfileOverlay, enter = slideInHorizontally(initialOffsetX = { it }), exit = slideOutHorizontally(targetOffsetX = { it }), modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()) {
+                ProfileScreen(
+                    name = name, email = email, userViewModel = userViewModel, authViewModel = authViewModel, 
+                    studyViewModel = studyViewModel, experienceViewModel = experienceViewModel,
+                    onBackClick = { 
+                        showProfileOverlay = false
+                        showMenuOverlay = true
                     }
                 )
             }

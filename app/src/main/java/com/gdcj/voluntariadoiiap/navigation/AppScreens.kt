@@ -2,10 +2,7 @@ package com.gdcj.voluntariadoiiap.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class AppScreens(
@@ -13,6 +10,7 @@ sealed class AppScreens(
     val title: String,
     val icon: ImageVector
 ) {
+    object SplashScreen : AppScreens("splash_screen", "Splash", Icons.Default.Home) // RUTA AÑADIDA
     object LoginScreen : AppScreens("login_screen", "Login", Icons.Default.Home)
     object RegisterScreen : AppScreens("register_screen", "Register", Icons.Default.Home)
 
