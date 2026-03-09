@@ -36,8 +36,27 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _profilePictureUri = MutableStateFlow<Uri?>(null)
     val profilePictureUri = _profilePictureUri.asStateFlow()
 
+    init {
+        // Sincronizar datos si ya hay sesión activa
+        if (isUserLoggedIn()) {
+            val token = sessionManager.fetchAuthToken()
+            val email = sessionManager.fetchUserEmail()
+            if (token != null && email != null) {
+                viewModelScope.launch {
+                    fetchAndSaveUserInfo(token, email)
+                }
+            }
+        }
+    }
+
     fun updateProfilePicture(uri: Uri?) {
         _profilePictureUri.value = uri
+    }
+
+    fun updateLocalUserData(name: String, email: String) {
+        _userName.value = name
+        _userEmail.value = email
+        sessionManager.saveUserData(name, email)
     }
 
     fun login(email: String, pass: String, onSuccess: (String, String) -> Unit) {
@@ -53,7 +72,7 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     _userEmail.value = email
                     sessionManager.saveUserData(_userName.value, email)
                     
-                    // Intentar obtener el ID del usuario buscando por email
+                    // Obtener info completa del usuario
                     fetchAndSaveUserInfo(token, email)
                     
                     _authState.value = AuthState.Success("Bienvenido")
@@ -83,12 +102,10 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     sessionManager.saveUserData(user.name, email)
                 }
             }
-        } catch (e: Exception) {
-            // Error silencioso al buscar info extra
-        }
+        } catch (e: Exception) { }
     }
 
-    fun register(name: String, email: String, pass: String, phone: String, onSuccess: () -> Unit) {
+    fun register(name: String, email: String, pass: String, phone: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
@@ -102,11 +119,8 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     )
                 )
                 if (response.isSuccessful) {
-                    _userName.value = name
-                    _userEmail.value = email
-                    sessionManager.saveUserData(name, email)
-                    _authState.value = AuthState.Success("Registro exitoso")
-                    onSuccess()
+                    // Después de registrar, hacemos login automático para obtener el token
+                    login(email, pass, onSuccess)
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string())
                     _authState.value = AuthState.Error(errorMsg ?: "Error al registrar")

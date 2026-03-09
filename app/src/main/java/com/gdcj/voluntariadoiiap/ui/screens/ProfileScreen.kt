@@ -56,7 +56,11 @@ fun ProfileScreen(
     val userDetailState by userViewModel.userDetailState.collectAsState()
     val userStudies by userViewModel.userStudies.collectAsState()
     val userExperiences by userViewModel.userExperiences.collectAsState()
-    val operationState by userViewModel.operationState.collectAsState()
+    
+    // Observar estados de operación de los ViewModels
+    val userOpState by userViewModel.operationState.collectAsState()
+    val studyOpState by studyViewModel.operationState.collectAsState()
+    val expOpState by experienceViewModel.operationState.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Perfil", "Formación", "Experiencia", "Logros")
@@ -71,16 +75,45 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(operationState) {
-        if (operationState is OperationState.Success) {
-            Toast.makeText(context, (operationState as OperationState.Success).message, Toast.LENGTH_SHORT).show()
+    // Manejo de resultados de operaciones para Usuario
+    LaunchedEffect(userOpState) {
+        if (userOpState is OperationState.Success) {
+            Toast.makeText(context, (userOpState as OperationState.Success).message, Toast.LENGTH_SHORT).show()
             userViewModel.resetOperationState()
             if (userId != -1) {
                 userViewModel.fetchUserById(token, userId)
             }
-        } else if (operationState is OperationState.Error) {
-            Toast.makeText(context, (operationState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
+        } else if (userOpState is OperationState.Error) {
+            Toast.makeText(context, (userOpState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
             userViewModel.resetOperationState()
+        }
+    }
+
+    // Manejo de resultados de operaciones para Estudios
+    LaunchedEffect(studyOpState) {
+        if (studyOpState is OperationState.Success) {
+            Toast.makeText(context, (studyOpState as OperationState.Success).message, Toast.LENGTH_SHORT).show()
+            studyViewModel.resetOperationState()
+            if (userId != -1) {
+                userViewModel.fetchUserStudies(token, userId)
+            }
+        } else if (studyOpState is OperationState.Error) {
+            Toast.makeText(context, (studyOpState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
+            studyViewModel.resetOperationState()
+        }
+    }
+
+    // Manejo de resultados de operaciones para Experiencia
+    LaunchedEffect(expOpState) {
+        if (expOpState is OperationState.Success) {
+            Toast.makeText(context, (expOpState as OperationState.Success).message, Toast.LENGTH_SHORT).show()
+            experienceViewModel.resetOperationState()
+            if (userId != -1) {
+                userViewModel.fetchUserExperiences(token, userId)
+            }
+        } else if (expOpState is OperationState.Error) {
+            Toast.makeText(context, (expOpState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
+            experienceViewModel.resetOperationState()
         }
     }
 
@@ -148,7 +181,6 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
-                        // Logo de configuración eliminado de aquí
                         Spacer(modifier = Modifier.size(48.dp))
                     }
 
@@ -238,7 +270,6 @@ fun ProfileScreen(
                 Box(modifier = Modifier.fillMaxSize().padding(top = 8.dp)) {
                     when (selectedTab) {
                         0 -> InfoPersonalContent(
-                            name = profileName,
                             birthDate = birthDate,
                             phone = phone,
                             gender = gender,
@@ -246,21 +277,15 @@ fun ProfileScreen(
                             bio = bio,
                             onEditClick = { showSheetType = SheetType.PERSONAL }
                         )
-                        1 -> FormacionContent(
+                        1 -> StudyContent(
                             studies = userStudies,
-                            onAddClick = { showSheetType = SheetType.STUDY },
-                            onDelete = { study ->
-                                study.id?.let { studyViewModel.deleteStudy(token, it) }
-                            }
+                            onAddClick = { showSheetType = SheetType.STUDY }
                         )
-                        2 -> ExperienciaContent(
+                        2 -> ExperienceContent(
                             experiences = userExperiences,
-                            onAddClick = { showSheetType = SheetType.EXPERIENCE },
-                            onDelete = { exp ->
-                                exp.id?.let { experienceViewModel.deleteExperience(token, it) }
-                            }
+                            onAddClick = { showSheetType = SheetType.EXPERIENCE }
                         )
-                        else -> LogrosContent()
+                        3 -> AchievementsContent()
                     }
                 }
             }
@@ -295,8 +320,11 @@ fun ProfileScreen(
                                     gender = g,
                                     location = l,
                                     bio = b
-                                ) ?: User(id = userId, name = n, email = email, birthDate = bd, phone = p, gender = g, location = l, bio = b)
+                                ) ?: User(id = userId, name = n, email = profileEmail, birthDate = bd, phone = p, gender = g, location = l, bio = b)
+                                
                                 userViewModel.updateUser(token, userId, updatedUser)
+                                // Actualizar AuthViewModel para que el nombre cambie en el App Bar global
+                                authViewModel.updateLocalUserData(n, profileEmail)
                             }
                             showSheetType = null
                         }
@@ -327,8 +355,25 @@ fun ProfileScreen(
 }
 
 @Composable
+fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(text = label, fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
+    }
+}
+
+@Composable
+fun StatDivider() {
+    Box(
+        modifier = Modifier
+            .height(30.dp)
+            .width(1.dp)
+            .background(Color.White.copy(alpha = 0.3f))
+    )
+}
+
+@Composable
 fun InfoPersonalContent(
-    name: String,
     birthDate: String,
     phone: String,
     gender: String,
@@ -336,217 +381,270 @@ fun InfoPersonalContent(
     bio: String,
     onEditClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        SectionTitle("Información Principal", onEditClick)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        ProfileCard {
-            Column(modifier = Modifier.padding(20.dp)) {
-                InfoDetailRow(Icons.Outlined.Badge, "Nombre Completo", name)
-                InfoDetailRow(Icons.Outlined.Cake, "Fecha de Nacimiento", birthDate)
-                InfoDetailRow(Icons.Outlined.Phone, "Teléfono de Contacto", phone)
-                InfoDetailRow(Icons.Outlined.Wc, "Género", gender)
-                InfoDetailRow(Icons.Outlined.PinDrop, "Ubicación", location)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Información Básica",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            TextButton(onClick = onEditClick) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Editar")
             }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        InfoCard {
+            InfoRow(Icons.Default.Cake, "Nacimiento", birthDate)
+            InfoRow(Icons.Default.Phone, "Teléfono", phone)
+            InfoRow(Icons.Default.PersonOutline, "Género", gender)
+            InfoRow(Icons.Default.LocationOn, "Ubicación", location)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            "Acerca de mí",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+        ) {
+            Text(
+                text = bio,
+                modifier = Modifier.padding(16.dp),
+                fontSize = 14.sp,
+                lineHeight = 22.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         
         Spacer(modifier = Modifier.height(24.dp))
-        SectionTitle("Bio y Motivación", onEditClick)
-        Spacer(modifier = Modifier.height(12.dp))
-        ProfileCard {
+    }
+}
+
+@Composable
+fun StudyContent(studies: List<Study>, onAddClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                bio,
-                modifier = Modifier.padding(20.dp),
-                fontSize = 14.sp,
-                lineHeight = 22.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                "Formación Académica",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
+            FilledTonalButton(
+                onClick = onAddClick,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                Text("Agregar", fontSize = 12.sp)
+            }
         }
-    }
-}
 
-@Composable
-fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black)
-        Text(label, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun StatDivider() {
-    Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.2f)))
-}
-
-@Composable
-fun FormacionContent(
-    studies: List<Study>,
-    onAddClick: () -> Unit,
-    onDelete: (Study) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        SectionTitle("Historial Académico", onAddClick, isAdd = true)
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         if (studies.isEmpty()) {
-            EmptyStateMessage("¿Tienes estudios?", "Registra tus títulos o cursos para destacar.")
+            EmptyState(Icons.Default.School, "No has agregado estudios aún.")
         } else {
             studies.forEach { study ->
-                AcademicItem(
-                    inst = study.institution,
-                    title = study.degree,
-                    date = "${study.startDate} - ${study.endDate ?: "Presente"}",
-                    isMain = studies.first() == study,
-                    onDelete = { onDelete(study) }
+                ItemCard(
+                    icon = Icons.Default.School,
+                    title = study.institution,
+                    subtitle = study.degree,
+                    date = "${study.startDate} - ${study.endDate ?: "Presente"}"
                 )
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
 }
 
 @Composable
-fun ExperienciaContent(
-    experiences: List<Experience>,
-    onAddClick: () -> Unit,
-    onDelete: (Experience) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        SectionTitle("Experiencia Laboral", onAddClick, isAdd = true)
+fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Experiencia de Voluntariado",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            FilledTonalButton(
+                onClick = onAddClick,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                modifier = Modifier.height(32.dp)
+            ) {
+                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                Text("Agregar", fontSize = 12.sp)
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         if (experiences.isEmpty()) {
-            EmptyStateMessage("Agrega tu experiencia", "Incluso voluntariados previos cuentan para tu perfil.")
+            EmptyState(Icons.Default.Work, "No has agregado experiencias aún.")
         } else {
             experiences.forEach { exp ->
-                WorkItem(
-                    company = exp.company,
-                    pos = exp.position,
+                ItemCard(
+                    icon = Icons.Default.Work,
+                    title = exp.company,
+                    subtitle = exp.position,
                     date = "${exp.startDate} - ${exp.endDate ?: "Presente"}",
-                    desc = exp.description ?: "",
-                    onDelete = { onDelete(exp) }
+                    description = exp.description
                 )
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
 }
 
 @Composable
-fun LogrosContent() {
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Outlined.EmojiEvents, null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Tus Insignias", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Pronto podrás ganar insignias por tus horas de voluntariado.", textAlign = TextAlign.Center, color = Color.Gray, fontSize = 14.sp)
-    }
-}
-
-@Composable
-fun SectionTitle(title: String, onClick: () -> Unit, isAdd: Boolean = false) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onBackground)
-        TextButton(onClick = onClick) {
-            Icon(if(isAdd) Icons.Default.Add else Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(if(isAdd) "Agregar" else "Editar", fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun ProfileCard(content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(2.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+fun AchievementsContent() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        content()
+        Icon(
+            Icons.Default.EmojiEvents,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Próximamente",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            "Tus insignias y reconocimientos aparecerán aquí.",
+            textAlign = TextAlign.Center,
+            color = Color.Gray,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
     }
 }
 
 @Composable
-fun InfoDetailRow(icon: ImageVector, label: String, value: String) {
-    Row(modifier = Modifier.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)) {
-            Icon(icon, null, modifier = Modifier.padding(8.dp).size(18.dp), tint = MaterialTheme.colorScheme.primary)
+fun InfoCard(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), content = content)
+    }
+}
+
+@Composable
+fun InfoRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.padding(8.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Bold)
-            Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = label, fontSize = 12.sp, color = Color.Gray)
+            Text(text = value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 @Composable
-fun AcademicItem(inst: String, title: String, date: String, isMain: Boolean, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if(isMain) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.School, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(inst, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(title, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                Text(date, fontSize = 11.sp, color = Color.Gray)
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar", tint = Color.Red.copy(alpha = 0.6f))
-            }
-        }
-    }
-}
-
-@Composable
-fun WorkItem(company: String, pos: String, date: String, desc: String, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.WorkOutline, null, tint = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(company, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text(pos, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.secondary)
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar", tint = Color.Red.copy(alpha = 0.6f))
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(desc, fontSize = 12.sp, color = Color.Gray, lineHeight = 18.sp, modifier = Modifier.weight(1f))
-                Text(date, fontSize = 11.sp, color = Color.Gray)
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyStateMessage(title: String, desc: String) {
+fun ItemCard(icon: ImageVector, title: String, subtitle: String, date: String, description: String? = null) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
-        Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(desc, fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+        Row(modifier = Modifier.padding(16.dp)) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(subtitle, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                Text(date, fontSize = 12.sp, color = Color.Gray)
+                if (description != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(description, fontSize = 13.sp, color = Color.DarkGray)
+                }
+            }
         }
     }
 }
 
-// --- FORMULARIOS ---
+@Composable
+fun EmptyState(icon: ImageVector, message: String) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, null, modifier = Modifier.size(48.dp), tint = Color.LightGray)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(message, color = Color.Gray, textAlign = TextAlign.Center)
+    }
+}
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalForm(
     currentName: String,
@@ -559,115 +657,39 @@ fun PersonalForm(
     onSave: (String, String, String, String, String, String) -> Unit
 ) {
     var name by remember { mutableStateOf(currentName) }
-    var birthDate by remember { mutableStateOf(currentBirthDate) }
-    var phone by remember { mutableStateOf(currentPhone) }
-    var gender by remember { mutableStateOf(currentGender) }
-    var location by remember { mutableStateOf(currentLocation) }
-    var bio by remember { mutableStateOf(currentBio) }
+    var birthDate by remember { mutableStateOf(if (currentBirthDate == "Sin especificar") "" else currentBirthDate) }
+    var phone by remember { mutableStateOf(if (currentPhone == "Sin especificar") "" else currentPhone) }
+    var gender by remember { mutableStateOf(if (currentGender == "Sin especificar") "" else currentGender) }
+    var location by remember { mutableStateOf(if (currentLocation == "Sin especificar") "" else currentLocation) }
+    var bio by remember { mutableStateOf(if (currentBio == "Sin biografía disponible.") "" else currentBio) }
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val selectedDate = datePickerState.selectedDateMillis
-                    if (selectedDate != null) {
-                        val formatter = SimpleDateFormat("dd 'de' MMMM, yyyy", Locale("es", "ES"))
-                        birthDate = formatter.format(Date(selectedDate))
-                    }
-                    showDatePicker = false
-                }) { Text("Confirmar") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader("Información Personal", "Actualiza tus datos para completar tu perfil de voluntario.")
-        
-        FormFieldPremium(name, { name = it }, "Nombre Completo", Icons.Outlined.Badge)
-        
-        // Campo de Fecha de Nacimiento (Calendario)
-        OutlinedTextField(
-            value = birthDate,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Fecha de Nacimiento") },
-            leadingIcon = { Icon(Icons.Outlined.Cake, null, tint = MaterialTheme.colorScheme.primary) },
-            trailingIcon = { 
-                IconButton(onClick = { showDatePicker = true }) {
-                    Icon(Icons.Outlined.CalendarMonth, null, tint = MaterialTheme.colorScheme.primary)
-                }
-            },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clickable { showDatePicker = true },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-            )
-        )
-
-        FormFieldPremium(phone, { phone = it }, "Teléfono de Contacto", Icons.Outlined.Phone)
-        
-        // Selector de Género
-        var expandedGender by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(
-            expanded = expandedGender,
-            onExpandedChange = { expandedGender = !expandedGender },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-        ) {
-            OutlinedTextField(
-                value = gender,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Género") },
-                leadingIcon = { Icon(Icons.Outlined.Wc, null, tint = MaterialTheme.colorScheme.primary) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGender) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                )
-            )
-            ExposedDropdownMenu(
-                expanded = expandedGender,
-                onDismissRequest = { expandedGender = false }
-            ) {
-                listOf("Masculino", "Femenino", "Otro").forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            gender = option
-                            expandedGender = false
-                        }
-                    )
-                }
-            }
-        }
-
-        FormFieldPremium(location, { location = it }, "Ubicación (Ciudad, Provincia)", Icons.Outlined.PinDrop)
-        
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
+        Text("Editar Información Personal", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Sobre mí / Motivación", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-        OutlinedTextField(
-            value = bio,
-            onValueChange = { bio = it },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
-            shape = RoundedCornerShape(16.dp),
-            placeholder = { Text("Cuéntanos qué te motiva a ser voluntario...") }
-        )
+
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = birthDate, onValueChange = { birthDate = it }, label = { Text("Fecha de Nacimiento (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Ubicación") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Biografía") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
         
-        Spacer(modifier = Modifier.height(32.dp))
-        PrimaryButton("Guardar Cambios") {
-            onSave(name, birthDate, phone, gender, location, bio)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { onSave(name, birthDate, phone, gender, location, bio) }) { Text("Guardar Cambios") }
         }
         Spacer(modifier = Modifier.height(40.dp))
     }
@@ -677,123 +699,63 @@ fun PersonalForm(
 fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
     var institution by remember { mutableStateOf("") }
     var degree by remember { mutableStateOf("") }
-    var field by remember { mutableStateOf("") }
-    var startYear by remember { mutableStateOf("") }
-    var endYear by remember { mutableStateOf("") }
-    
-    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader("Nueva Formación", "Registra tus estudios para validar tus competencias.")
-        
-        FormFieldPremium(institution, { institution = it }, "Institución Educativa", Icons.Outlined.School)
-        FormFieldPremium(degree, { degree = it }, "Grado o Título", Icons.Outlined.HistoryEdu)
-        FormFieldPremium(field, { field = it }, "Especialidad", Icons.Outlined.Book)
-        
+    var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+        Text("Agregar Formación", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(value = institution, onValueChange = { institution = it }, label = { Text("Institución") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = degree, onValueChange = { degree = it }, label = { Text("Grado / Título") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                FormFieldPremium(startYear, { startYear = it }, "Año Inicio", Icons.Outlined.CalendarToday)
-            }
-            Box(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
-                FormFieldPremium(endYear, { endYear = it }, "Año Fin", Icons.Outlined.CalendarToday)
-            }
+            OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(12.dp))
+            OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fin (Opcional)") }, modifier = Modifier.weight(1f))
         }
         
-        Spacer(modifier = Modifier.height(32.dp))
-        PrimaryButton("Registrar Estudio", enabled = institution.isNotBlank() && degree.isNotBlank()) {
-            onSave(Study(
-                institution = institution, 
-                degree = degree, 
-                fieldOfStudy = field, 
-                startDate = startYear, 
-                endDate = if(endYear.isBlank()) "Presente" else endYear, 
-                user_id = -1 // Se asignará en ProfileScreen
-            ))
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { onSave(Study(institution = institution, degree = degree, fieldOfStudy = "General", startDate = startDate, endDate = endDate.ifEmpty { null }, user_id = 0)) }) { Text("Agregar") }
         }
-        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 
 @Composable
 fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
-    var company by remember { mutableStateOf("") }
-    var position by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-    var startYear by remember { mutableStateOf("") }
-    var endYear by remember { mutableStateOf("") }
+    var organization by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader("Nueva Experiencia", "Cuéntanos dónde has trabajado o colaborado anteriormente.")
-        
-        FormFieldPremium(company, { company = it }, "Empresa / ONG / Institución", Icons.Outlined.Business)
-        FormFieldPremium(position, { position = it }, "Cargo ocupado", Icons.Outlined.WorkOutline)
-        
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Box(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                FormFieldPremium(startYear, { startYear = it }, "Año Inicio", Icons.Outlined.CalendarToday)
-            }
-            Box(modifier = Modifier.weight(1f).padding(start = 8.dp)) {
-                FormFieldPremium(endYear, { endYear = it }, "Año Fin", Icons.Outlined.CalendarToday)
-            }
-        }
-
+    Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+        Text("Agregar Experiencia", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Descripción de funciones", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
-        OutlinedTextField(
-            value = desc,
-            onValueChange = { desc = it },
-            modifier = Modifier.fillMaxWidth().height(100.dp),
-            shape = RoundedCornerShape(16.dp),
-            placeholder = { Text("Breve resumen de tus actividades...") }
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        PrimaryButton("Registrar Experiencia", enabled = company.isNotBlank() && position.isNotBlank()) {
-            onSave(Experience(
-                company = company, 
-                position = position, 
-                description = desc, 
-                startDate = startYear, 
-                endDate = if(endYear.isBlank()) "Presente" else endYear,
-                user_id = -1 // Se asignará en ProfileScreen
-            ))
+
+        OutlinedTextField(value = organization, onValueChange = { organization = it }, label = { Text("Organización") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = role, onValueChange = { role = it }, label = { Text("Rol") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(value = startDate, onValueChange = { startDate = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(12.dp))
+            OutlinedTextField(value = endDate, onValueChange = { endDate = it }, label = { Text("Fin (Opcional)") }, modifier = Modifier.weight(1f))
         }
-        Spacer(modifier = Modifier.height(40.dp))
-    }
-}
+        Spacer(modifier = Modifier.height(12.dp))
+        OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
 
-@Composable
-fun FormHeader(title: String, subtitle: String) {
-    Column(modifier = Modifier.padding(bottom = 24.dp)) {
-        Text(title, fontSize = 24.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
-        Text(subtitle, fontSize = 14.sp, color = Color.Gray)
-    }
-}
+        Spacer(modifier = Modifier.height(24.dp))
 
-@Composable
-fun FormFieldPremium(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        leadingIcon = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-        )
-    )
-}
-
-@Composable
-fun PrimaryButton(text: String, enabled: Boolean = true, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(56.dp),
-        shape = RoundedCornerShape(16.dp),
-        enabled = enabled,
-        elevation = ButtonDefaults.buttonElevation(4.dp)
-    ) {
-        Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { onSave(Experience(company = organization, position = role, startDate = startDate, endDate = endDate.ifEmpty { null }, description = description, user_id = 0)) }) { Text("Agregar") }
+        }
     }
 }

@@ -183,8 +183,8 @@ fun RegisterScreen(
 
             Button(
                 onClick = { 
-                    authViewModel.register(name, email, password, phone) {
-                        onRegisterClick(name, email)
+                    authViewModel.register(name, email, password, phone) { n, e ->
+                        onRegisterClick(n, e)
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
