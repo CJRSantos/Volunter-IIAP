@@ -1,12 +1,16 @@
 package com.gdcj.voluntariadoiiap.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -19,7 +23,6 @@ import com.gdcj.voluntariadoiiap.ui.components.AppDrawerContent
 import com.gdcj.voluntariadoiiap.ui.components.UserHeader
 import com.gdcj.voluntariadoiiap.ui.screens.*
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
-import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavigation(
@@ -33,8 +36,8 @@ fun AppNavigation(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    
+    var showRightMenu by remember { mutableStateOf(false) }
 
     val studyViewModel: StudyViewModel = viewModel()
     val experienceViewModel: ExperienceViewModel = viewModel()
@@ -52,35 +55,12 @@ fun AppNavigation(
     val name by authViewModel.userName.collectAsState()
     val email by authViewModel.userEmail.collectAsState()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = showHeader,
-        drawerContent = {
-            if (showHeader) {
-                AppDrawerContent(
-                    name = name,
-                    email = email,
-                    authViewModel = authViewModel,
-                    onProfileClick = {
-                        scope.launch { drawerState.close() }
-                        navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
-                    },
-                    onLogoutClick = {
-                        scope.launch { drawerState.close() }
-                        authViewModel.logout {
-                            navController.navigate(AppScreens.LoginScreen.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
-                    },
-                    onSettingsClick = {
-                        scope.launch { drawerState.close() }
-                        // Implementar navegación a configuración si existe
-                    }
-                )
-            }
-        }
-    ) {
+    val startDestination = remember {
+        if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
+    }
+
+    // CAPA SUPERIOR PARA EL MENÚ
+    Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 if (showHeader) {
@@ -88,9 +68,7 @@ fun AppNavigation(
                         name = name,
                         email = email,
                         authViewModel = authViewModel,
-                        onMenuClick = {
-                            scope.launch { drawerState.open() }
-                        }
+                        onMenuClick = { showRightMenu = true }
                     )
                 }
             },
@@ -99,39 +77,34 @@ fun AppNavigation(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(innerPadding)
                     .background(MaterialTheme.colorScheme.background)
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route,
-                    modifier = Modifier.padding(
-                        top = if (showHeader) innerPadding.calculateTopPadding() else 0.dp,
-                        bottom = innerPadding.calculateBottomPadding()
-                    )
+                    startDestination = startDestination,
+                    enterTransition = { fadeIn(tween(300)) + scaleIn(initialScale = 0.98f) },
+                    exitTransition = { fadeOut(tween(300)) },
+                    popEnterTransition = { fadeIn(tween(300)) },
+                    popExitTransition = { fadeOut(tween(300)) + scaleOut(targetScale = 0.98f) }
                 ) {
                     composable(AppScreens.LoginScreen.route) {
                         LoginScreen(
                             authViewModel = authViewModel,
-                            onLoginClick = { nameParam, emailParam ->
-                                navController.navigate(
-                                    AppScreens.HomeScreen.createRoute(nameParam, emailParam)
-                                ) {
+                            onLoginClick = { n, e ->
+                                navController.navigate(AppScreens.HomeScreen.createRoute(n, e)) {
                                     popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
                                 }
                             },
-                            onRegisterClick = {
-                                navController.navigate(AppScreens.RegisterScreen.route)
-                            }
+                            onRegisterClick = { navController.navigate(AppScreens.RegisterScreen.route) }
                         )
                     }
 
                     composable(AppScreens.RegisterScreen.route) {
                         RegisterScreen(
                             authViewModel = authViewModel,
-                            onRegisterClick = { nameParam, emailParam ->
-                                navController.navigate(
-                                    AppScreens.HomeScreen.createRoute(nameParam, emailParam)
-                                ) {
+                            onRegisterClick = { n, e ->
+                                navController.navigate(AppScreens.HomeScreen.createRoute(n, e)) {
                                     popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
                                 }
                             },
@@ -146,22 +119,17 @@ fun AppNavigation(
                             navArgument("email") { defaultValue = "" }
                         )
                     ) { backStackEntry ->
-                        val nameArg = backStackEntry.arguments?.getString("name") ?: ""
-                        val emailArg = backStackEntry.arguments?.getString("email") ?: ""
+                        val n = backStackEntry.arguments?.getString("name") ?: ""
+                        val e = backStackEntry.arguments?.getString("email") ?: ""
                         HomeScreen(
-                            name = nameArg,
-                            email = emailArg,
+                            name = n, email = e,
                             themeViewModel = themeViewModel,
                             authViewModel = authViewModel,
                             onLogoutNavigate = { 
-                                navController.navigate(AppScreens.LoginScreen.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
+                                navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } }
                             },
                             onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
-                            onProfileClick = {
-                                navController.navigate(AppScreens.ProfileScreen.createRoute(nameArg, emailArg))
-                            }
+                            onProfileClick = { navController.navigate(AppScreens.ProfileScreen.createRoute(n, e)) }
                         )
                     }
 
@@ -176,11 +144,10 @@ fun AppNavigation(
                             navArgument("email") { defaultValue = "" }
                         )
                     ) { backStackEntry ->
-                        val nameArg = backStackEntry.arguments?.getString("name") ?: ""
-                        val emailArg = backStackEntry.arguments?.getString("email") ?: ""
+                        val n = backStackEntry.arguments?.getString("name") ?: ""
+                        val e = backStackEntry.arguments?.getString("email") ?: ""
                         ProfileScreen(
-                            name = nameArg,
-                            email = emailArg,
+                            name = n, email = e,
                             userViewModel = userViewModel,
                             authViewModel = authViewModel,
                             studyViewModel = studyViewModel,
@@ -191,42 +158,70 @@ fun AppNavigation(
 
                     composable(
                         route = AppScreens.AreasScreen.route,
-                        arguments = listOf(
-                            navArgument("name") { defaultValue = "" },
-                            navArgument("email") { defaultValue = "" }
-                        )
+                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
                     ) { backStackEntry ->
-                        val nameArg = backStackEntry.arguments?.getString("name") ?: ""
-                        val emailArg = backStackEntry.arguments?.getString("email") ?: ""
-                        AreasScreen(
-                            areaViewModel = areaViewModel,
-                            name = nameArg,
-                            email = emailArg
-                        )
+                        val n = backStackEntry.arguments?.getString("name") ?: ""
+                        val e = backStackEntry.arguments?.getString("email") ?: ""
+                        AreasScreen(areaViewModel = areaViewModel, name = n, email = e)
                     }
 
                     composable(route = AppScreens.ConvocatoriasScreen.route) {
-                        ConvocatoriasScreen(
-                            projectViewModel = projectViewModel,
-                            authViewModel = authViewModel
-                        )
+                        ConvocatoriasScreen(projectViewModel = projectViewModel, authViewModel = authViewModel)
                     }
 
                     composable(
                         route = AppScreens.NosotrosScreen.route,
-                        arguments = listOf(
-                            navArgument("name") { defaultValue = "" },
-                            navArgument("email") { defaultValue = "" }
-                        )
+                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
                     ) { backStackEntry ->
-                        val nameArg = backStackEntry.arguments?.getString("name") ?: ""
-                        val emailArg = backStackEntry.arguments?.getString("email") ?: ""
-                        NosotrosScreen(
-                            name = nameArg,
-                            email = emailArg
-                        )
+                        val n = backStackEntry.arguments?.getString("name") ?: ""
+                        val e = backStackEntry.arguments?.getString("email") ?: ""
+                        NosotrosScreen(name = n, email = e)
                     }
                 }
+            }
+        }
+
+        // MENÚ SOBRE TODA LA PANTALLA (Incluso sobre las barras)
+        if (showHeader) {
+            AnimatedVisibility(
+                visible = showRightMenu,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { showRightMenu = false }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showRightMenu,
+                enter = slideInHorizontally(initialOffsetX = { it }),
+                exit = slideOutHorizontally(targetOffsetX = { it }),
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                AppDrawerContent(
+                    name = name,
+                    email = email,
+                    authViewModel = authViewModel,
+                    onProfileClick = {
+                        showRightMenu = false
+                        navController.navigate(AppScreens.ProfileScreen.createRoute(name, email))
+                    },
+                    onLogoutClick = {
+                        showRightMenu = false
+                        authViewModel.logout {
+                            navController.navigate(AppScreens.LoginScreen.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
+                )
             }
         }
     }
