@@ -38,6 +38,7 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
+    // Estados para los paneles laterales
     var showMenuOverlay by remember { mutableStateOf(false) }
     var showProfileOverlay by remember { mutableStateOf(false) }
 
@@ -55,11 +56,13 @@ fun AppNavigation(
 
     val name by authViewModel.userName.collectAsState()
     val email by authViewModel.userEmail.collectAsState()
+    val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
 
     val startDestination = remember {
         if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
     }
 
+    // Manejo del botón atrás físico
     BackHandler(enabled = showMenuOverlay || showProfileOverlay) {
         if (showProfileOverlay) {
             showProfileOverlay = false
@@ -91,7 +94,9 @@ fun AppNavigation(
             ) {
                 NavHost(
                     navController = navController,
-                    startDestination = startDestination
+                    startDestination = startDestination,
+                    enterTransition = { fadeIn(tween(300)) },
+                    exitTransition = { fadeOut(tween(300)) }
                 ) {
                     composable(AppScreens.LoginScreen.route) {
                         LoginScreen(
@@ -116,13 +121,9 @@ fun AppNavigation(
                         )
                     }
 
-                    val mainScreenFade = fadeIn(animationSpec = tween(300))
-                    val mainScreenExit = fadeOut(animationSpec = tween(300))
-
                     composable(
                         route = AppScreens.HomeScreen.route,
-                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
-                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
+                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
                     ) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
@@ -133,21 +134,17 @@ fun AppNavigation(
                         )
                     }
 
-                    composable(route = AppScreens.AreasScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
-                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
-                    ) { backStackEntry ->
+                    composable(route = AppScreens.AreasScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
                         AreasScreen(areaViewModel = areaViewModel, name = n, email = e)
                     }
 
-                    composable(route = AppScreens.ConvocatoriasScreen.route, enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }) {
+                    composable(route = AppScreens.ConvocatoriasScreen.route) {
                         ConvocatoriasScreen(projectViewModel = projectViewModel, authViewModel = authViewModel)
                     }
 
-                    composable(route = AppScreens.NosotrosScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" }),
-                        enterTransition = { mainScreenFade }, exitTransition = { mainScreenExit }
-                    ) { backStackEntry ->
+                    composable(route = AppScreens.NosotrosScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
                         NosotrosScreen(name = n, email = e)
@@ -158,8 +155,9 @@ fun AppNavigation(
             }
         }
 
-        // CAPA DE OVERLAYS (MENÚ Y PERFIL)
+        // CAPA DE OVERLAYS
         if (showHeader) {
+            // Fondo oscuro
             AnimatedVisibility(visible = showMenuOverlay || showProfileOverlay, enter = fadeIn(), exit = fadeOut()) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { 
                     showMenuOverlay = false
@@ -167,7 +165,13 @@ fun AppNavigation(
                 })
             }
 
-            AnimatedVisibility(visible = showMenuOverlay, enter = slideInHorizontally(initialOffsetX = { it }), exit = slideOutHorizontally(targetOffsetX = { it }), modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()) {
+            // PANEL DE MENÚ
+            AnimatedVisibility(
+                visible = showMenuOverlay,
+                enter = slideInHorizontally(initialOffsetX = { it }),
+                exit = slideOutHorizontally(targetOffsetX = { it }),
+                modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()
+            ) {
                 AppDrawerContent(
                     name = name, email = email, authViewModel = authViewModel,
                     onProfileClick = { showMenuOverlay = false; showProfileOverlay = true },
@@ -178,7 +182,13 @@ fun AppNavigation(
                 )
             }
 
-            AnimatedVisibility(visible = showProfileOverlay, enter = slideInHorizontally(initialOffsetX = { it }), exit = slideOutHorizontally(targetOffsetX = { it }), modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()) {
+            // PANEL DE PERFIL
+            AnimatedVisibility(
+                visible = showProfileOverlay,
+                enter = slideInHorizontally(initialOffsetX = { it }),
+                exit = slideOutHorizontally(targetOffsetX = { it }),
+                modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()
+            ) {
                 ProfileScreen(
                     name = name, email = email, userViewModel = userViewModel, authViewModel = authViewModel, 
                     studyViewModel = studyViewModel, experienceViewModel = experienceViewModel,

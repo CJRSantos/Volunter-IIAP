@@ -65,7 +65,6 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Quitamos el UserHeader de aquí porque ya está en el Scaffold de AppNavigation
         item { WelcomeHeroCard(onActionClick = onNavigateToInfo) }
         
         item { SectionHeader("Noticias Recientes") }
@@ -297,7 +296,7 @@ fun SocialMediaList() {
                 icon = data.icon,
                 name = data.name,
                 containerColor = data.containerColor,
-                modifier = Modifier.width(260.dp).height(160.dp),
+                modifier = Modifier.width(200.dp).height(120.dp),
                 onClick = {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.url))
                     context.startActivity(intent)
