@@ -75,11 +75,11 @@ fun LoginScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // Logo IIAP - Ahora sin fondo blanco para respetar la transparencia
+            // Logo IIAP
             Box(
-                modifier = Modifier.size(150.dp),
+                modifier = Modifier.size(120.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -90,15 +90,15 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "VOLUNTARIADO IIAP",
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -107,9 +107,10 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = emailOrPhone,
                     onValueChange = { emailOrPhone = it },
-                    placeholder = { Text("Correo o Teléfono", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Correo o Teléfono", color = Color.White.copy(alpha = 0.7f)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color.White,
                         unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
@@ -117,16 +118,19 @@ fun LoginScreen(
                         unfocusedTextColor = Color.White,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        cursorColor = Color.White
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
                     )
                 )
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    placeholder = { Text("Contraseña", color = Color.White.copy(alpha = 0.7f)) },
+                    label = { Text("Contraseña", color = Color.White.copy(alpha = 0.7f)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
@@ -141,12 +145,14 @@ fun LoginScreen(
                         unfocusedTextColor = Color.White,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
-                        cursorColor = Color.White
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color.White,
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
                     )
                 )
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = { handleLogin() },
@@ -166,6 +172,8 @@ fun LoginScreen(
             TextButton(onClick = onRegisterClick) {
                 Text(text = "¿No tienes cuenta? Regístrate aquí", color = Color.White, fontWeight = FontWeight.SemiBold)
             }
+            
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

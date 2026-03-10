@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.screens
 
+import android.util.Patterns
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,8 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,12 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    // Estados de error
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
+    var passError by remember { mutableStateOf<String?>(null) }
+
     val authState by authViewModel.authState.collectAsState()
     val context = LocalContext.current
 
@@ -46,6 +53,32 @@ fun RegisterScreen(
         if (authState is AuthState.Error) {
             Toast.makeText(context, (authState as AuthState.Error).message, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun validateInputs(): Boolean {
+        var isValid = true
+        
+        if (name.length < 3) {
+            nameError = "El nombre es muy corto"
+            isValid = false
+        } else nameError = null
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailError = "Correo no válido"
+            isValid = false
+        } else emailError = null
+
+        if (phone.length < 9) {
+            phoneError = "Teléfono inválido"
+            isValid = false
+        } else phoneError = null
+
+        if (password.length < 6) {
+            passError = "Mínimo 6 caracteres"
+            isValid = false
+        } else passError = null
+
+        return isValid
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -56,179 +89,153 @@ fun RegisterScreen(
             contentScale = ContentScale.Crop
         )
         
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-        )
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Spacer(modifier = Modifier.height(48.dp))
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBackToLogin) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBackIos,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = Color.White
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBackIos, null, modifier = Modifier.size(20.dp), tint = Color.White)
                 }
-                Spacer(modifier = Modifier.weight(0.3f))
-                Text(
-                    text = "VOLUNTARIADO",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.weight(1f))
+                Text("Registro de Voluntario", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Logo IIAP - Igualado al tamaño de Login (150dp)
-            Box(
-                modifier = Modifier.size(150.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo_iiap),
-                    contentDescription = "IIAP Logo",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "Crear Cuenta",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TransparentRegisterField(
-                    label = "Nombre completo", 
-                    value = name, 
-                    onValueChange = { name = it }, 
-                    placeholder = "Juan Pérez", 
-                    icon = Icons.Default.Person,
-                    enabled = authState !is AuthState.Loading
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 
-                TransparentRegisterField(
-                    label = "Correo electrónico", 
-                    value = email, 
-                    onValueChange = { email = it }, 
-                    placeholder = "ejemplo@correo.com", 
+                Column {
+                    Text("¡Únete a nosotros!", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                    Text("Completa tus datos personales para continuar.", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                }
+
+                ProfessionalField(
+                    label = "Nombre y Apellidos",
+                    value = name,
+                    onValueChange = { name = it },
+                    icon = Icons.Default.Person,
+                    error = nameError,
+                    enabled = authState !is AuthState.Loading
+                )
+
+                ProfessionalField(
+                    label = "Correo Personal",
+                    value = email,
+                    onValueChange = { email = it },
                     icon = Icons.Default.Email,
+                    error = emailError,
                     enabled = authState !is AuthState.Loading
                 )
 
-                TransparentRegisterField(
-                    label = "Número de teléfono", 
-                    value = phone, 
-                    onValueChange = { phone = it }, 
-                    placeholder = "+51 999 999 999", 
+                ProfessionalField(
+                    label = "Número de Celular",
+                    value = phone,
+                    onValueChange = { phone = it },
                     icon = Icons.Default.PhoneAndroid,
+                    error = phoneError,
                     enabled = authState !is AuthState.Loading
                 )
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "Contraseña", fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column {
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        placeholder = { Text("........", color = Color.White.copy(alpha = 0.7f)) },
+                        label = { Text("Contraseña", fontSize = 12.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        isError = passError != null,
                         enabled = authState !is AuthState.Loading,
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color.White) },
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color.White) },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
-                            val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(imageVector = image, contentDescription = null, tint = Color.White)
+                                Icon(if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, null, tint = Color.White)
                             }
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color.White,
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.4f),
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            cursorColor = Color.White
+                            cursorColor = Color.White,
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.6f),
+                            errorBorderColor = Color(0xFFE57373)
                         )
                     )
+                    if (passError != null) Text(passError!!, color = Color(0xFFE57373), fontSize = 11.sp, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = { 
+                        if (validateInputs()) {
+                            authViewModel.register(name, email, password, phone) { n, e -> onRegisterClick(n, e) }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF38B1C)),
+                    elevation = ButtonDefaults.buttonElevation(4.dp)
+                ) {
+                    if (authState is AuthState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Crear mi cuenta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = { 
-                    authViewModel.register(name, email, password, phone) { n, e ->
-                        onRegisterClick(n, e)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF38B1C))
-            ) {
-                if (authState is AuthState.Loading) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            TextButton(onClick = onBackToLogin) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("¿Ya tienes una cuenta? ", color = Color.White.copy(alpha = 0.8f))
+                    Text("Inicia Sesión", color = Color.White, fontWeight = FontWeight.Black)
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(onClick = onBackToLogin) {
-                Text("¿Ya tienes cuenta? Inicia sesión", color = Color.White, fontWeight = FontWeight.Bold)
-            }
+            
+            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }
 
 @Composable
-fun TransparentRegisterField(label: String, value: String, onValueChange: (String) -> Unit, placeholder: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean = true) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = label, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
-        Spacer(modifier = Modifier.height(4.dp))
+fun ProfessionalField(label: String, value: String, onValueChange: (String) -> Unit, icon: androidx.compose.ui.graphics.vector.ImageVector, error: String?, enabled: Boolean) {
+    Column {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = Color.White.copy(alpha = 0.7f)) },
+            label = { Text(label, fontSize = 12.sp) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            isError = error != null,
             enabled = enabled,
-            leadingIcon = { Icon(icon, contentDescription = null, tint = Color.White) },
+            leadingIcon = { Icon(icon, null, tint = Color.White) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.4f),
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                cursorColor = Color.White
+                cursorColor = Color.White,
+                focusedLabelColor = Color.White,
+                unfocusedLabelColor = Color.White.copy(alpha = 0.6f),
+                errorBorderColor = Color(0xFFE57373)
             )
         )
+        if (error != null) Text(error, color = Color(0xFFE57373), fontSize = 11.sp, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
     }
 }
