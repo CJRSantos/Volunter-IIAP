@@ -13,3 +13,13 @@ class AuthViewModelFactory(private val sessionManager: SessionManager) : ViewMod
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+
+class ThemeViewModelFactory(private val sessionManager: SessionManager) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ThemeViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ThemeViewModel(sessionManager) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}

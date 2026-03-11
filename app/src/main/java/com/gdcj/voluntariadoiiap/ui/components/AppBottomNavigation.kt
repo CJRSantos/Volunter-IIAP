@@ -1,5 +1,7 @@
 package com.gdcj.voluntariadoiiap.ui.components
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
@@ -23,15 +25,15 @@ fun AppBottomNavigation(navController: NavController) {
         AppScreens.NosotrosScreen
     )
 
-    // Hide bottom bar on Login and Register
     val showBottomBar = navigationItems.any { it.route == currentDestination?.route || currentDestination?.route?.startsWith(it.route.split("?")[0]) == true }
 
     if (showBottomBar) {
-        // Desactivamos el ripple (sombra al presionar) para una respuesta visual limpia e inmediata
+        // Quitamos el ripple para una transición más limpia
         CompositionLocalProvider(LocalRippleConfiguration provides null) {
             NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 0.dp
+                containerColor = MaterialTheme.colorScheme.background, // Usamos background para integración total
+                tonalElevation = 0.dp, // Sin elevación para evitar cambios de tono
+                windowInsets = WindowInsets.navigationBars // Cubre el área de la barra de gestos del sistema
             ) {
                 navigationItems.forEach { screen ->
                     val isSelected = currentDestination?.hierarchy?.any { 
@@ -39,7 +41,12 @@ fun AppBottomNavigation(navController: NavController) {
                     } == true
 
                     NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.title) },
+                        icon = { 
+                            Icon(
+                                imageVector = screen.icon, 
+                                contentDescription = screen.title
+                            ) 
+                        },
                         label = { Text(screen.title) },
                         selected = isSelected,
                         onClick = {
@@ -54,11 +61,11 @@ fun AppBottomNavigation(navController: NavController) {
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF2E7D32),
-                            selectedTextColor = Color(0xFF2E7D32),
-                            indicatorColor = Color(0xFFC8E6C9), // Resalto verde claro
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary, // BLANCO sobre verde
+                            selectedTextColor = MaterialTheme.colorScheme.primary,   // TEXTO VERDE
+                            indicatorColor = MaterialTheme.colorScheme.primary,       // PILL VERDE
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     )
                 }
