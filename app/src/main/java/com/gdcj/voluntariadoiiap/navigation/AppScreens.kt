@@ -37,4 +37,6 @@ sealed class AppScreens(
     }
     
     object SecurityScreen : AppScreens("security_screen", "Seguridad", Icons.Default.Security)
+    
+    object NotificationsScreen : AppScreens("notifications_screen", "Notificaciones", Icons.Default.Notifications)
 }

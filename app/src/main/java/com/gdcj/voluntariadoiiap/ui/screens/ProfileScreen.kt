@@ -9,6 +9,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,6 +133,8 @@ fun ProfileScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             ProfileHeader(name, email, profilePictureUri, onBackClick) { showPhotoOptionsDialog = true }
             
+            ImpactSummary()
+
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
@@ -212,7 +217,7 @@ private fun ProfileHeader(name: String, email: String, profilePictureUri: Uri?, 
         modifier = Modifier
             .fillMaxWidth()
             .background(brush = Brush.verticalGradient(colors = listOf(brandColor, brandColor.copy(alpha = 0.8f))), shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-            .padding(bottom = 24.dp)
+            .padding(bottom = 16.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row(
@@ -227,7 +232,7 @@ private fun ProfileHeader(name: String, email: String, profilePictureUri: Uri?, 
 
             Box(contentAlignment = Alignment.Center, modifier = Modifier.clickable { onPhotoClick() }) {
                 Surface(
-                    modifier = Modifier.size(110.dp),
+                    modifier = Modifier.size(100.dp),
                     shape = CircleShape,
                     color = Color.White.copy(alpha = 0.2f),
                     border = BorderStroke(3.dp, Color.White)
@@ -238,14 +243,44 @@ private fun ProfileHeader(name: String, email: String, profilePictureUri: Uri?, 
                         Icon(Icons.Default.Person, null, modifier = Modifier.padding(24.dp), tint = Color.White)
                     }
                 }
-                Surface(modifier = Modifier.size(32.dp).align(Alignment.BottomEnd), shape = CircleShape, color = MaterialTheme.colorScheme.secondary, shadowElevation = 4.dp) {
+                Surface(modifier = Modifier.size(30.dp).align(Alignment.BottomEnd), shape = CircleShape, color = MaterialTheme.colorScheme.secondary, shadowElevation = 4.dp) {
                     Icon(Icons.Default.PhotoCamera, null, modifier = Modifier.padding(6.dp), tint = Color.White)
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(text = name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = email, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = name, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = email, fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+        }
+    }
+}
+
+@Composable
+fun ImpactSummary() {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        ImpactItem(Icons.Default.AccessTime, "120h", "Horas")
+        ImpactItem(Icons.Default.TaskAlt, "8", "Proyectos")
+        ImpactItem(Icons.Default.Groups, "500+", "Impacto")
+    }
+}
+
+@Composable
+fun ImpactItem(icon: ImageVector, value: String, label: String) {
+    Card(
+        modifier = Modifier.width(100.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(label, fontSize = 10.sp, color = Color.Gray)
         }
     }
 }
@@ -381,13 +416,55 @@ fun ExperienceItem(exp: Experience, onDelete: () -> Unit) {
     }
 }
 
+data class Achievement(val title: String, val icon: ImageVector, val color: Color)
+
 @Composable
 fun AchievementsContent() {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(80.dp), tint = Color.LightGray)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Tus logros aparecerán aquí", fontWeight = FontWeight.Medium, color = Color.Gray)
-        Text("Completa misiones y proyectos para ganar insignias", fontSize = 12.sp, color = Color.LightGray, textAlign = TextAlign.Center)
+    val achievements = listOf(
+        Achievement("Pionero", Icons.Default.Stars, Color(0xFFFFD700)),
+        Achievement("Eco-Guerrero", Icons.Default.Eco, Color(0xFF4CAF50)),
+        Achievement("Mentor", Icons.Default.RecordVoiceOver, Color(0xFF2196F3)),
+        Achievement("Colaborador Oro", Icons.Default.MilitaryTech, Color(0xFFFF9800)),
+        Achievement("Solidario", Icons.Default.Favorite, Color(0xFFE91E63)),
+        Achievement("Explorador", Icons.Default.Explore, Color(0xFF9C27B0))
+    )
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("Tus Logros Obtenidos", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 16.dp))
+        
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(achievements) { achievement ->
+                AchievementCard(achievement)
+            }
+        }
+    }
+}
+
+@Composable
+fun AchievementCard(achievement: Achievement) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Surface(
+            modifier = Modifier.size(80.dp),
+            shape = CircleShape,
+            color = achievement.color.copy(alpha = 0.15f),
+            border = BorderStroke(2.dp, achievement.color)
+        ) {
+            Icon(
+                imageVector = achievement.icon,
+                contentDescription = null,
+                modifier = Modifier.padding(20.dp),
+                tint = achievement.color
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(achievement.title, fontSize = 11.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
     }
 }
 
