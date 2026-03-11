@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.okhttp.logging)
 
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.android.image.cropper)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

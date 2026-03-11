@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <style name="Theme.VOLUNTARIADOIIAP" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Estilo para la actividad de recorte de imagen (CropImageActivity) -->
+    <!-- Se requiere una barra de acciones para que aparezca el botón de 'Aceptar' -->
+    <style name="Theme.App.Crop" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="windowActionBar">true</item>
+        <item name="windowNoTitle">false</item>
+        <item name="colorPrimary">#F38B1C</item> <!-- Color naranja para que coincida con tu app -->
+        <item name="colorPrimaryDark">#D87515</item>
+    </style>
 </resources>

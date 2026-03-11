@@ -173,7 +173,10 @@ fun AppNavigation(
                 modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()
             ) {
                 AppDrawerContent(
-                    name = name, email = email, authViewModel = authViewModel,
+                    name = name, 
+                    email = email, 
+                    authViewModel = authViewModel,
+                    themeViewModel = themeViewModel,
                     onProfileClick = { showMenuOverlay = false; showProfileOverlay = true },
                     onLogoutClick = {
                         showMenuOverlay = false

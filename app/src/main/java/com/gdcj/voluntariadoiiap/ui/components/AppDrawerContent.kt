@@ -7,10 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,40 +21,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
 
 @Composable
 fun AppDrawerContent(
     name: String,
     email: String,
     authViewModel: AuthViewModel,
+    themeViewModel: ThemeViewModel,
     onProfileClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
+    val isDarkMode by themeViewModel.isDarkMode.collectAsState()
 
     Surface(
-        modifier = Modifier.fillMaxHeight().width(300.dp),
+        modifier = Modifier.fillMaxHeight().width(320.dp),
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp),
-        tonalElevation = 8.dp
+        shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+        tonalElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(16.dp)
+                .padding(24.dp)
         ) {
             // Header del Drawer
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp),
+                    .padding(vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     if (profilePictureUri != null) {
@@ -70,7 +72,7 @@ fun AppDrawerContent(
                             Icons.Default.Person,
                             contentDescription = null,
                             modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -78,19 +80,81 @@ fun AppDrawerContent(
                 Column {
                     Text(
                         text = name,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = email,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp), thickness = 0.5.dp)
 
             // Opciones del Menu
+            Text(
+                "Configuración",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
             DrawerItem(
-                icon = Icons.Default.PersonOutline,
+                icon = Icons.Outlined.Person,
                 label = "Perfil",
                 onClick = onProfileClick
+            )
+
+            // Switch Modo Oscuro
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.Transparent,
+                onClick = { themeViewModel.toggleDarkMode() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Modo Oscuro",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Switch(
+                        checked = isDarkMode,
+                        onCheckedChange = { themeViewModel.toggleDarkMode() }
+                    )
+                }
+            }
+
+            DrawerItem(
+                icon = Icons.Outlined.NotificationsActive,
+                label = "Notificaciones",
+                trailing = {
+                    var notificationsEnabled by remember { mutableStateOf(true) }
+                    Switch(
+                        checked = notificationsEnabled,
+                        onCheckedChange = { notificationsEnabled = it }
+                    )
+                },
+                onClick = {}
+            )
+
+            DrawerItem(
+                icon = Icons.Outlined.Security,
+                label = "Seguridad y Privacidad",
+                onClick = {}
             )
             
             Spacer(modifier = Modifier.weight(1f))
@@ -100,8 +164,8 @@ fun AppDrawerContent(
             DrawerItem(
                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                 label = "Cerrar sesión",
-                iconColor = Color(0xFFE57373),
-                labelColor = Color(0xFFE57373),
+                iconColor = MaterialTheme.colorScheme.error,
+                labelColor = MaterialTheme.colorScheme.error,
                 onClick = onLogoutClick
             )
         }
@@ -114,19 +178,17 @@ fun DrawerItem(
     label: String,
     iconColor: Color = MaterialTheme.colorScheme.onSurface,
     labelColor: Color = MaterialTheme.colorScheme.onSurface,
+    trailing: @Composable (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
         shape = RoundedCornerShape(8.dp),
         onClick = onClick
     ) {
         Row(
-            modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -140,8 +202,10 @@ fun DrawerItem(
                 text = label,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = labelColor
+                color = labelColor,
+                modifier = Modifier.weight(1f)
             )
+            trailing?.invoke()
         }
     }
 }
