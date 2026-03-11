@@ -150,12 +150,6 @@ fun AppDrawerContent(
                 },
                 onClick = {}
             )
-
-            DrawerItem(
-                icon = Icons.Outlined.Security,
-                label = "Seguridad y Privacidad",
-                onClick = {}
-            )
             
             Spacer(modifier = Modifier.weight(1f))
 
