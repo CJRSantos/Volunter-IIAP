@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
@@ -24,10 +25,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val themeViewModel: ThemeViewModel = viewModel()
+            val sessionManager = remember { SessionManager(this) }
+            val themeViewModel: ThemeViewModel = viewModel(
+                factory = ThemeViewModelFactory(sessionManager)
+            )
             val isDarkMode by themeViewModel.isDarkMode.collectAsState()
             
-            val sessionManager = SessionManager(this)
             val authViewModel: AuthViewModel = viewModel(
                 factory = AuthViewModelFactory(sessionManager)
             )

@@ -37,7 +37,20 @@ class SessionManager(context: Context) {
         return prefs.getString("profile_picture", null)
     }
 
+    // Métodos para el modo oscuro
+    fun saveDarkMode(enabled: Boolean) {
+        prefs.edit().putBoolean("dark_mode", enabled).apply()
+    }
+
+    fun isDarkModeEnabled(): Boolean {
+        return prefs.getBoolean("dark_mode", false)
+    }
+
     fun clearSession() {
+        // Al cerrar sesión, podemos decidir si mantener el tema o no. 
+        // Normalmente se mantiene, así que solo borramos los datos del usuario.
+        val darkMode = isDarkModeEnabled()
         prefs.edit().clear().apply()
+        saveDarkMode(darkMode)
     }
 }

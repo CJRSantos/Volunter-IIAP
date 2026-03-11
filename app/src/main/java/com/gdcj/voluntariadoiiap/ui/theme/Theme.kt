@@ -27,6 +27,9 @@ private val DarkColorScheme = darkColorScheme(
     surface = Color(0xFF1A1C19),
     onBackground = Color(0xFFE2E3DD),
     onSurface = Color(0xFFE2E3DD),
+    surfaceVariant = Color(0xFF424940),
+    onSurfaceVariant = Color(0xFFC2C8BC),
+    outline = Color(0xFF8C9388)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -46,6 +49,9 @@ private val LightColorScheme = lightColorScheme(
     surface = Color(0xFFFCFDF6),
     onBackground = Color(0xFF1A1C19),
     onSurface = Color(0xFF1A1C19),
+    surfaceVariant = Color(0xFFDEE5D9),
+    onSurfaceVariant = Color(0xFF424940),
+    outline = Color(0xFF72796F)
 )
 
 @Composable
@@ -59,8 +65,13 @@ fun VOLUNTARIADOIIAPTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // Hacemos la barra de estado transparente para que se integre con el diseño edge-to-edge
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+            
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
