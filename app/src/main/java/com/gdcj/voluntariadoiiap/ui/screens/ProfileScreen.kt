@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,8 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,7 +40,7 @@ import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
-enum class SheetType { PERSONAL, STUDY, EXPERIENCE, CHANGE_PASSWORD }
+enum class SheetType { PERSONAL, STUDY, EXPERIENCE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +67,7 @@ fun ProfileScreen(
     val expOpState by experienceViewModel.operationState.collectAsState()
 
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Perfil", "Formación", "Experiencia", "Seguridad")
+    val tabs = listOf("Perfil", "Formación", "Experiencia")
     
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheetType by remember { mutableStateOf<SheetType?>(null) }
@@ -121,7 +121,6 @@ fun ProfileScreen(
                     0 -> InfoPersonalContent(userDetailState) { showSheetType = SheetType.PERSONAL }
                     1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(token, it) } }
                     2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(token, it) } }
-                    3 -> SecurityContent { showSheetType = SheetType.CHANGE_PASSWORD }
                 }
             }
         }
@@ -156,7 +155,7 @@ fun ProfileScreen(
 
     if (showSheetType != null) {
         ModalBottomSheet(onDismissRequest = { showSheetType = null }, sheetState = sheetState) {
-            Box(modifier = Modifier.fillMaxHeight(0.85f).navigationBarsPadding()) {
+            Box(modifier = Modifier.fillMaxHeight(0.9f).navigationBarsPadding()) {
                 when (showSheetType) {
                     SheetType.PERSONAL -> PersonalForm(userDetailState, onDismiss = { showSheetType = null }) { updatedUser ->
                         userViewModel.updateUser(token, userId, updatedUser)
@@ -169,10 +168,6 @@ fun ProfileScreen(
                     }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
                         experienceViewModel.createExperience(token, exp.copy(user_id = userId))
-                        showSheetType = null
-                    }
-                    SheetType.CHANGE_PASSWORD -> ChangePasswordForm(onDismiss = { showSheetType = null }) { old, new ->
-                        Toast.makeText(context, "Funcionalidad en desarrollo", Toast.LENGTH_SHORT).show()
                         showSheetType = null
                     }
                     null -> {}
@@ -276,44 +271,6 @@ fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onD
 }
 
 @Composable
-fun SecurityContent(onChangePasswordClick: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Seguridad y Privacidad", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                SecurityItem(Icons.Default.Lock, "Contraseña", "Cambia tu contraseña periódicamente para mayor seguridad", onClick = onChangePasswordClick)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp)
-                SecurityItem(Icons.Default.Shield, "Privacidad", "Gestiona quién puede ver tu perfil de voluntario", onClick = {})
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp)
-                SecurityItem(Icons.Default.History, "Sesiones activas", "Ver dónde has iniciado sesión recientemente", onClick = {})
-            }
-        }
-    }
-}
-
-@Composable
-fun SecurityItem(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(modifier = Modifier.size(40.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)) {
-            Icon(icon, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text(subtitle, fontSize = 12.sp, color = Color.Gray)
-        }
-        Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
-    }
-}
-
-@Composable
 fun ItemCard(icon: ImageVector, title: String, subtitle: String, date: String, desc: String? = null, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(1.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -376,19 +333,80 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
     var bio by remember { mutableStateOf(u?.bio ?: "") }
 
     Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-        Text("Información Personal", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Información Personal", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
+        }
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(value = bd, onValueChange = { bd = it }, label = { Text("Nacimiento (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
-        OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
-        OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
-        OutlinedTextField(value = loc, onValueChange = { loc = it }, label = { Text("Ubicación") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
-        OutlinedTextField(value = bio, onValueChange = { bio = it }, label = { Text("Biografía") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), minLines = 3)
+        
+        OutlinedTextField(
+            value = name, 
+            onValueChange = { name = it }, 
+            label = { Text("Nombre Completo") }, 
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(12.dp)
+        )
+        
+        OutlinedTextField(
+            value = bd, 
+            onValueChange = { bd = it }, 
+            label = { Text("Nacimiento (YYYY-MM-DD)") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            leadingIcon = { Icon(Icons.Default.Cake, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(12.dp)
+        )
+        
+        OutlinedTextField(
+            value = phone, 
+            onValueChange = { phone = it }, 
+            label = { Text("Teléfono") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            shape = RoundedCornerShape(12.dp)
+        )
+        
+        OutlinedTextField(
+            value = gender, 
+            onValueChange = { gender = it }, 
+            label = { Text("Género") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            leadingIcon = { Icon(Icons.Default.Wc, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(12.dp)
+        )
+        
+        OutlinedTextField(
+            value = loc, 
+            onValueChange = { loc = it }, 
+            label = { Text("Ubicación") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(12.dp)
+        )
+        
+        OutlinedTextField(
+            value = bio, 
+            onValueChange = { bio = it }, 
+            label = { Text("Biografía") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            minLines = 3,
+            leadingIcon = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(12.dp)
+        )
+        
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = { 
-            onSave(u?.copy(name = name, birthDate = bd, phone = phone, gender = gender, location = loc, bio = bio) 
-            ?: User(id = 0, name = name, email = "", birthDate = bd, phone = phone, gender = gender, location = loc, bio = bio)) 
-        }, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Guardar Cambios") }
+        
+        Button(
+            onClick = { 
+                onSave(u?.copy(name = name, birthDate = bd, phone = phone, gender = gender, location = loc, bio = bio) 
+                ?: User(id = 0, name = name, email = "", birthDate = bd, phone = phone, gender = gender, location = loc, bio = bio)) 
+            }, 
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) { 
+            Text("Guardar Cambios", fontWeight = FontWeight.Bold) 
+        }
         Spacer(modifier = Modifier.height(20.dp))
     }
 }
@@ -399,18 +417,22 @@ fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
     var deg by remember { mutableStateOf("") }
     var start by remember { mutableStateOf("") }
     var end by remember { mutableStateOf("") }
-    Column(modifier = Modifier.padding(24.dp)) {
-        Text("Nueva Formación", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        OutlinedTextField(value = inst, onValueChange = { inst = it }, label = { Text("Institución") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
-        OutlinedTextField(value = deg, onValueChange = { deg = it }, label = { Text("Título") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Nueva Formación", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
+        }
+        OutlinedTextField(value = inst, onValueChange = { inst = it }, label = { Text("Institución") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), leadingIcon = { Icon(Icons.Default.School, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(value = deg, onValueChange = { deg = it }, label = { Text("Título / Carrera") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), leadingIcon = { Icon(Icons.Default.Book, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
         }
         Button(onClick = { 
             onSave(Study(institution = inst, degree = deg, fieldOfStudy = "General", startDate = start, endDate = end.ifEmpty { null }, user_id = 0)) 
-        }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(56.dp)) { Text("Añadir Formación") }
+        }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(56.dp), shape = RoundedCornerShape(12.dp)) { Text("Añadir Formación", fontWeight = FontWeight.Bold) }
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
@@ -421,82 +443,22 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
     var start by remember { mutableStateOf("") }
     var end by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
-    Column(modifier = Modifier.padding(24.dp)) {
-        Text("Nueva Experiencia", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        OutlinedTextField(value = comp, onValueChange = { comp = it }, label = { Text("Empresa") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp))
-        OutlinedTextField(value = pos, onValueChange = { pos = it }, label = { Text("Cargo") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f))
+    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Nueva Experiencia", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
         }
-        OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+        OutlinedTextField(value = comp, onValueChange = { comp = it }, label = { Text("Empresa / Organización") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), leadingIcon = { Icon(Icons.Default.Business, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(value = pos, onValueChange = { pos = it }, label = { Text("Cargo / Rol") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), leadingIcon = { Icon(Icons.Default.Badge, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+        }
+        OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), minLines = 2, leadingIcon = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
         Button(onClick = { 
             onSave(Experience(company = comp, position = pos, startDate = start, endDate = end.ifEmpty { null }, description = desc, user_id = 0)) 
-        }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(56.dp)) { Text("Añadir Experiencia") }
-    }
-}
-
-@Composable
-fun ChangePasswordForm(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var oldPass by remember { mutableStateOf("") }
-    var newPass by remember { mutableStateOf("") }
-    var confirmPass by remember { mutableStateOf("") }
-    var oldVisible by remember { mutableStateOf(false) }
-    var newVisible by remember { mutableStateOf(false) }
-
-    Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
-        Text("Cambiar Contraseña", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Tu nueva contraseña debe tener al menos 6 caracteres.", fontSize = 13.sp, color = Color.Gray)
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        OutlinedTextField(
-            value = oldPass, 
-            onValueChange = { oldPass = it }, 
-            label = { Text("Contraseña Actual") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (oldVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = { IconButton(onClick = { oldVisible = !oldVisible }) { Icon(if(oldVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null) } }
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = newPass, 
-            onValueChange = { newPass = it }, 
-            label = { Text("Nueva Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = { IconButton(onClick = { newVisible = !newVisible }) { Icon(if(newVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null) } }
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = confirmPass, 
-            onValueChange = { confirmPass = it }, 
-            label = { Text("Confirmar Nueva Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation()
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        Button(
-            onClick = { 
-                if(newPass == confirmPass && newPass.length >= 6) {
-                    onSave(oldPass, newPass)
-                } else {
-                    // Mostrar error local si no coinciden
-                }
-            }, 
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            enabled = oldPass.isNotEmpty() && newPass.isNotEmpty() && confirmPass.isNotEmpty()
-        ) {
-            Text("Actualizar Contraseña")
-        }
-        Spacer(modifier = Modifier.height(40.dp))
+        }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(56.dp), shape = RoundedCornerShape(12.dp)) { Text("Añadir Experiencia", fontWeight = FontWeight.Bold) }
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
