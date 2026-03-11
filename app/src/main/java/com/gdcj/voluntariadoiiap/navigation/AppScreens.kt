@@ -10,7 +10,7 @@ sealed class AppScreens(
     val title: String,
     val icon: ImageVector
 ) {
-    object SplashScreen : AppScreens("splash_screen", "Splash", Icons.Default.Home) // RUTA AÑADIDA
+    object SplashScreen : AppScreens("splash_screen", "Splash", Icons.Default.Home)
     object LoginScreen : AppScreens("login_screen", "Login", Icons.Default.Home)
     object RegisterScreen : AppScreens("register_screen", "Register", Icons.Default.Home)
 
@@ -35,4 +35,6 @@ sealed class AppScreens(
     object ProfileScreen : AppScreens("profile_screen", "Perfil", Icons.Default.AccountCircle) {
         fun createRoute(name: String, email: String) = "profile_screen?name=$name&email=$email"
     }
+    
+    object SecurityScreen : AppScreens("security_screen", "Seguridad", Icons.Default.Security)
 }

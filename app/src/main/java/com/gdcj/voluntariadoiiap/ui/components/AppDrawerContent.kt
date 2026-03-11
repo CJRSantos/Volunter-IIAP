@@ -30,6 +30,7 @@ fun AppDrawerContent(
     authViewModel: AuthViewModel,
     themeViewModel: ThemeViewModel,
     onProfileClick: () -> Unit,
+    onSecurityClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
@@ -154,7 +155,7 @@ fun AppDrawerContent(
             DrawerItem(
                 icon = Icons.Outlined.Security,
                 label = "Seguridad y Privacidad",
-                onClick = {}
+                onClick = onSecurityClick
             )
             
             Spacer(modifier = Modifier.weight(1f))

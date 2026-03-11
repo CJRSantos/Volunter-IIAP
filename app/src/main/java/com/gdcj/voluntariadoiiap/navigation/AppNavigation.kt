@@ -151,6 +151,10 @@ fun AppNavigation(
                     }
                     
                     composable(AppScreens.AdditionalInfoScreen.route) { AdditionalInfoScreen(onBackClick = { navController.popBackStack() }) }
+
+                    composable(AppScreens.SecurityScreen.route) {
+                        SecurityScreen(onBackClick = { navController.popBackStack() })
+                    }
                 }
             }
         }
@@ -178,6 +182,10 @@ fun AppNavigation(
                     authViewModel = authViewModel,
                     themeViewModel = themeViewModel,
                     onProfileClick = { showMenuOverlay = false; showProfileOverlay = true },
+                    onSecurityClick = {
+                        showMenuOverlay = false
+                        navController.navigate(AppScreens.SecurityScreen.route)
+                    },
                     onLogoutClick = {
                         showMenuOverlay = false
                         authViewModel.logout { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } }
