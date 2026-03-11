@@ -32,4 +32,13 @@ class SessionManager(context: Context) {
     fun clearSession() {
         prefs.edit().clear().apply()
     }
+
+    // --- Persistencia del Modo Oscuro ---
+    fun saveDarkMode(isEnabled: Boolean) {
+        prefs.edit().putBoolean("dark_mode", isEnabled).apply()
+    }
+
+    fun isDarkModeEnabled(): Boolean {
+        return prefs.getBoolean("dark_mode", false) // Por defecto, el modo claro está desactivado
+    }
 }

@@ -131,7 +131,7 @@ class UserViewModel : ViewModel() {
             try {
                 val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
                 val response = RetrofitClient.userService.updateUser(authToken, id, user)
-                if (response.isSuccessful) {
+                if (response.isSuccessful && response.body() != null) {
                     _operationState.value = OperationState.Success("Usuario actualizado")
                     _userDetailState.value = UserDetailState.Success(response.body()!!)
                 } else {
