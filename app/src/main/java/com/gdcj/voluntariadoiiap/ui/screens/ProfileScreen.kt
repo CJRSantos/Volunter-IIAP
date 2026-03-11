@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,7 +30,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,8 @@ import com.gdcj.voluntariadoiiap.data.model.Experience
 import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 enum class SheetType { PERSONAL, STUDY, EXPERIENCE }
 
@@ -322,6 +327,7 @@ fun AchievementsContent() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -> Unit) {
     val u = (state as? UserDetailState.Success)?.user
@@ -331,6 +337,30 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
     var gender by remember { mutableStateOf(u?.gender ?: "") }
     var loc by remember { mutableStateOf(u?.location ?: "") }
     var bio by remember { mutableStateOf(u?.bio ?: "") }
+
+    val focusManager = LocalFocusManager.current
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        bd = sdf.format(Date(it))
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -345,26 +375,42 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
             label = { Text("Nombre Completo") }, 
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary) },
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
         )
         
-        OutlinedTextField(
-            value = bd, 
-            onValueChange = { bd = it }, 
-            label = { Text("Nacimiento (YYYY-MM-DD)") }, 
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            leadingIcon = { Icon(Icons.Default.Cake, null, tint = MaterialTheme.colorScheme.primary) },
-            shape = RoundedCornerShape(12.dp)
-        )
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clickable { showDatePicker = true }) {
+            OutlinedTextField(
+                value = bd, 
+                onValueChange = { }, 
+                label = { Text("Fecha de Nacimiento") }, 
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Cake, null, tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(12.dp),
+                readOnly = true,
+                enabled = false,
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
         
         OutlinedTextField(
             value = phone, 
-            onValueChange = { phone = it }, 
-            label = { Text("Teléfono") }, 
+            onValueChange = { if (it.length <= 9 && it.all { char -> char.isDigit() }) phone = it }, 
+            label = { Text("Teléfono (9 dígitos)") }, 
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             leadingIcon = { Icon(Icons.Default.Phone, null, tint = MaterialTheme.colorScheme.primary) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            shape = RoundedCornerShape(12.dp)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) }),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
         )
         
         OutlinedTextField(
@@ -373,7 +419,10 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
             label = { Text("Género") }, 
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             leadingIcon = { Icon(Icons.Default.Wc, null, tint = MaterialTheme.colorScheme.primary) },
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
         )
         
         OutlinedTextField(
@@ -382,7 +431,10 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
             label = { Text("Ubicación") }, 
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary) },
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
         )
         
         OutlinedTextField(
@@ -392,7 +444,9 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             minLines = 3,
             leadingIcon = { Icon(Icons.Default.Info, null, tint = MaterialTheme.colorScheme.primary) },
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -417,17 +471,58 @@ fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
     var deg by remember { mutableStateOf("") }
     var start by remember { mutableStateOf("") }
     var end by remember { mutableStateOf("") }
+    
+    val focusManager = LocalFocusManager.current
+
     Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Nueva Formación", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
         }
-        OutlinedTextField(value = inst, onValueChange = { inst = it }, label = { Text("Institución") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), leadingIcon = { Icon(Icons.Default.School, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
-        OutlinedTextField(value = deg, onValueChange = { deg = it }, label = { Text("Título / Carrera") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), leadingIcon = { Icon(Icons.Default.Book, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(
+            value = inst, 
+            onValueChange = { inst = it }, 
+            label = { Text("Institución") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp), 
+            leadingIcon = { Icon(Icons.Default.School, null, tint = MaterialTheme.colorScheme.primary) }, 
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
+        )
+        OutlinedTextField(
+            value = deg, 
+            onValueChange = { deg = it }, 
+            label = { Text("Título / Carrera") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp), 
+            leadingIcon = { Icon(Icons.Default.Book, null, tint = MaterialTheme.colorScheme.primary) }, 
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) })
+        )
         Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(
+                value = start, 
+                onValueChange = { start = it }, 
+                label = { Text("Inicio") }, 
+                modifier = Modifier.weight(1f), 
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) })
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(
+                value = end, 
+                onValueChange = { end = it }, 
+                label = { Text("Fin") }, 
+                modifier = Modifier.weight(1f), 
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+            )
         }
         Button(onClick = { 
             onSave(Study(institution = inst, degree = deg, fieldOfStudy = "General", startDate = start, endDate = end.ifEmpty { null }, user_id = 0)) 
@@ -443,19 +538,70 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
     var start by remember { mutableStateOf("") }
     var end by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
+    
+    val focusManager = LocalFocusManager.current
+
     Column(modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Nueva Experiencia", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, null) }
         }
-        OutlinedTextField(value = comp, onValueChange = { comp = it }, label = { Text("Empresa / Organización") }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), leadingIcon = { Icon(Icons.Default.Business, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
-        OutlinedTextField(value = pos, onValueChange = { pos = it }, label = { Text("Cargo / Rol") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), leadingIcon = { Icon(Icons.Default.Badge, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(
+            value = comp, 
+            onValueChange = { comp = it }, 
+            label = { Text("Empresa / Organización") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp), 
+            leadingIcon = { Icon(Icons.Default.Business, null, tint = MaterialTheme.colorScheme.primary) }, 
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
+        )
+        OutlinedTextField(
+            value = pos, 
+            onValueChange = { pos = it }, 
+            label = { Text("Cargo / Rol") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp), 
+            leadingIcon = { Icon(Icons.Default.Badge, null, tint = MaterialTheme.colorScheme.primary) }, 
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) })
+        )
         Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Inicio") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(
+                value = start, 
+                onValueChange = { start = it }, 
+                label = { Text("Inicio") }, 
+                modifier = Modifier.weight(1f), 
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Right) })
+            )
             Spacer(modifier = Modifier.width(8.dp))
-            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Fin") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(
+                value = end, 
+                onValueChange = { end = it }, 
+                label = { Text("Fin") }, 
+                modifier = Modifier.weight(1f), 
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) })
+            )
         }
-        OutlinedTextField(value = desc, onValueChange = { desc = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), minLines = 2, leadingIcon = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary) }, shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(
+            value = desc, 
+            onValueChange = { desc = it }, 
+            label = { Text("Descripción") }, 
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp), 
+            minLines = 2, 
+            leadingIcon = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary) }, 
+            shape = RoundedCornerShape(12.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
+        )
         Button(onClick = { 
             onSave(Experience(company = comp, position = pos, startDate = start, endDate = end.ifEmpty { null }, description = desc, user_id = 0)) 
         }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(56.dp), shape = RoundedCornerShape(12.dp)) { Text("Añadir Experiencia", fontWeight = FontWeight.Bold) }
