@@ -23,14 +23,12 @@ fun AppBottomNavigation(navController: NavController) {
         AppScreens.NosotrosScreen
     )
 
-    // Hide bottom bar on Login and Register
     val showBottomBar = navigationItems.any { it.route == currentDestination?.route || currentDestination?.route?.startsWith(it.route.split("?")[0]) == true }
 
     if (showBottomBar) {
-        // Desactivamos el ripple (sombra al presionar) para una respuesta visual limpia e inmediata
         CompositionLocalProvider(LocalRippleConfiguration provides null) {
             NavigationBar(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface, // RESPETA EL MODO OSCURO
                 tonalElevation = 0.dp
             ) {
                 navigationItems.forEach { screen ->
@@ -54,9 +52,9 @@ fun AppBottomNavigation(navController: NavController) {
                             }
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF2E7D32),
-                            selectedTextColor = Color(0xFF2E7D32),
-                            indicatorColor = Color(0xFFC8E6C9), // Resalto verde claro
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             unselectedIconColor = Color.Gray,
                             unselectedTextColor = Color.Gray
                         )
