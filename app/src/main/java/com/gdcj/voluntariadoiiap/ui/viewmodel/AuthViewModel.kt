@@ -33,7 +33,9 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     val userId = _userId.asStateFlow()
 
     // Estado global para la foto de perfil
-    private val _profilePictureUri = MutableStateFlow<Uri?>(null)
+    private val _profilePictureUri = MutableStateFlow<Uri?>(
+        sessionManager.fetchProfilePicture()?.let { Uri.parse(it) }
+    )
     val profilePictureUri = _profilePictureUri.asStateFlow()
 
     init {
@@ -51,6 +53,7 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
 
     fun updateProfilePicture(uri: Uri?) {
         _profilePictureUri.value = uri
+        sessionManager.saveProfilePicture(uri?.toString())
     }
 
     fun updateLocalUserData(name: String, email: String) {
@@ -147,6 +150,7 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
             _userName.value = "Usuario IIAP"
             _userEmail.value = ""
             _userId.value = -1
+            _profilePictureUri.value = null
             onSuccess()
         }
     }

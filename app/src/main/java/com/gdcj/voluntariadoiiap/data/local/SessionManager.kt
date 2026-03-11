@@ -29,6 +29,14 @@ class SessionManager(context: Context) {
     fun fetchUserName(): String? = prefs.getString("user_name", null)
     fun fetchUserEmail(): String? = prefs.getString("user_email", null)
 
+    fun saveProfilePicture(uri: String?) {
+        prefs.edit().putString("profile_picture", uri).apply()
+    }
+
+    fun fetchProfilePicture(): String? {
+        return prefs.getString("profile_picture", null)
+    }
+
     fun clearSession() {
         prefs.edit().clear().apply()
     }
