@@ -4,12 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
 
-class AuthViewModelFactory(private val sessionManager: SessionManager) : ViewModelProvider.Factory {
+class ViewModelFactory(private val sessionManager: SessionManager) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return AuthViewModel(sessionManager) as T
+        return when {
+            modelClass.isAssignableFrom(AuthViewModel::class.java) -> AuthViewModel(sessionManager) as T
+            modelClass.isAssignableFrom(ThemeViewModel::class.java) -> ThemeViewModel(sessionManager) as T
+            else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

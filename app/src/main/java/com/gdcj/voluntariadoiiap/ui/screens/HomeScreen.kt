@@ -30,7 +30,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.gdcj.voluntariadoiiap.R
 import com.gdcj.voluntariadoiiap.ui.components.LogoutDialog
-import com.gdcj.voluntariadoiiap.ui.components.SocialMediaItem
 import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
 import com.gdcj.voluntariadoiiap.ui.viewmodel.HomeViewModel
 import com.gdcj.voluntariadoiiap.ui.viewmodel.ThemeViewModel
@@ -72,9 +71,6 @@ fun HomeScreen(
 
         item { SectionHeader("Videos IIAP") }
         item { VideoCarousel() }
-
-        item { SectionHeader("Nuestras Redes") }
-        item { SocialMediaList() }
 
         item { Spacer(modifier = Modifier.height(24.dp)) }
     }
@@ -271,39 +267,3 @@ fun VideoCard(video: VideoItem, onClick: () -> Unit) {
 }
 
 data class VideoItem(val id: String, val title: String, val youtubeId: String, val url: String)
-
-@Composable
-fun SocialMediaList() {
-    val context = LocalContext.current
-    val socialMedias = listOf(
-        SocialMediaData(R.drawable.ic_facebook, "Facebook", Color(0xFF1877F2), "https://www.facebook.com/IIAPPERU/"),
-        SocialMediaData(R.drawable.ic_instagram, "Instagram", Color(0xFFE4405F), "https://www.instagram.com/iiapperu/?hl=es"),
-        SocialMediaData(R.drawable.ic_x, "X (Twitter)", Color(0xFF000000), "https://x.com/IiapPeru"),
-        SocialMediaData(R.drawable.ic_spotify, "Spotify", Color(0xFF1DB954), "https://open.spotify.com/show/22EKStrMUkA8MciXSj9EaE?si=4e51ebc4ad974d4b"),
-        SocialMediaData(R.drawable.ic_linkedin, "LinkedIn", Color(0xFF0A66C2), "https://pe.linkedin.com/company/instituto-de-investigaci%C3%B3n-de-la-amazon%C3%ADa-peruana-iiap"),
-        SocialMediaData(R.drawable.ic_youtube, "YouTube", Color(0xFFFF0000), "https://www.youtube.com/channel/UC7h_V_SOwW0wRsmhf00lAsA"),
-        SocialMediaData(R.drawable.ic_tiktok, "TikTok", Color(0xFF000000), "https://www.tiktok.com/@iiapperu?_r=1&_t=ZS-94FGzy7jFOq"),
-        SocialMediaData(R.drawable.ic_web, "Sitio Web", Color(0xFF008000), "https://www.gob.pe/iiap")
-    )
-
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        items(socialMedias) { data ->
-            SocialMediaItem(
-                icon = data.icon,
-                name = data.name,
-                containerColor = data.containerColor,
-                modifier = Modifier.width(200.dp).height(120.dp),
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data.url))
-                    context.startActivity(intent)
-                }
-            )
-        }
-    }
-}
-
-data class SocialMediaData(val icon: Int, val name: String, val containerColor: Color, val url: String)
