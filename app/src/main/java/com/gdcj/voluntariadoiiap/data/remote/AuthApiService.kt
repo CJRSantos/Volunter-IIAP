@@ -19,4 +19,9 @@ interface AuthApiService {
 
     @POST("auth/logout")
     suspend fun logout(): Response<LogoutResponse>
+
+    @POST("auth/password/change")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequest
+    ): Response<ChangePasswordResponse>
 }

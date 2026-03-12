@@ -38,12 +38,14 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Estados para los paneles laterales
+    // Estados para los paneles deslizantes
     var showMenuOverlay by remember { mutableStateOf(false) }
     var showProfileOverlay by remember { mutableStateOf(false) }
+    var showSecurityOverlay by remember { mutableStateOf(false) }
 
     val studyViewModel: StudyViewModel = viewModel()
     val experienceViewModel: ExperienceViewModel = viewModel()
+    val applicationViewModel: ApplicationViewModel = viewModel()
 
     val hideHeaderRoutes = listOf(
         AppScreens.LoginScreen.route,
@@ -62,9 +64,12 @@ fun AppNavigation(
         if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
     }
 
-    // Manejo del botón atrás físico
-    BackHandler(enabled = showMenuOverlay || showProfileOverlay) {
-        if (showProfileOverlay) {
+    // Manejo del botón atrás físico para cerrar paneles
+    BackHandler(enabled = showMenuOverlay || showProfileOverlay || showSecurityOverlay) {
+        if (showSecurityOverlay) {
+            showSecurityOverlay = false
+            showMenuOverlay = true
+        } else if (showProfileOverlay) {
             showProfileOverlay = false
             showMenuOverlay = true
         } else {
@@ -150,22 +155,32 @@ fun AppNavigation(
                         NosotrosScreen(name = n, email = e)
                     }
                     
-                    composable(AppScreens.AdditionalInfoScreen.route) { AdditionalInfoScreen(onBackClick = { navController.popBackStack() }) }
+                    composable(AppScreens.AdditionalInfoScreen.route) { 
+                        AdditionalInfoScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToPostulacion = { navController.navigate(AppScreens.PostulacionScreen.route) }
+                        ) 
+                    }
 
-                    composable(AppScreens.SecurityScreen.route) {
-                        SecurityScreen(onBackClick = { navController.popBackStack() })
+                    composable(AppScreens.PostulacionScreen.route) {
+                        PostulacionScreen(
+                            authViewModel = authViewModel,
+                            applicationViewModel = applicationViewModel,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
                 }
             }
         }
 
-        // CAPA DE OVERLAYS
+        // CAPA DE OVERLAYS (Paneles deslizantes sobre toda la UI)
         if (showHeader) {
-            // Fondo oscuro
-            AnimatedVisibility(visible = showMenuOverlay || showProfileOverlay, enter = fadeIn(), exit = fadeOut()) {
+            // Fondo oscuro común
+            AnimatedVisibility(visible = showMenuOverlay || showProfileOverlay || showSecurityOverlay, enter = fadeIn(), exit = fadeOut()) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { 
                     showMenuOverlay = false
                     showProfileOverlay = false
+                    showSecurityOverlay = false
                 })
             }
 
@@ -182,10 +197,7 @@ fun AppNavigation(
                     authViewModel = authViewModel,
                     themeViewModel = themeViewModel,
                     onProfileClick = { showMenuOverlay = false; showProfileOverlay = true },
-                    onSecurityClick = {
-                        showMenuOverlay = false
-                        navController.navigate(AppScreens.SecurityScreen.route)
-                    },
+                    onSecurityClick = { showMenuOverlay = false; showSecurityOverlay = true },
                     onLogoutClick = {
                         showMenuOverlay = false
                         authViewModel.logout { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } }
@@ -193,12 +205,12 @@ fun AppNavigation(
                 )
             }
 
-            // PANEL DE PERFIL
+            // PANEL DE PERFIL (PANTALLA COMPLETA, SIN CURVAS)
             AnimatedVisibility(
                 visible = showProfileOverlay,
                 enter = slideInHorizontally(initialOffsetX = { it }),
                 exit = slideOutHorizontally(targetOffsetX = { it }),
-                modifier = Modifier.align(Alignment.CenterEnd).systemBarsPadding()
+                modifier = Modifier.fillMaxSize().systemBarsPadding()
             ) {
                 ProfileScreen(
                     name = name, email = email, userViewModel = userViewModel, authViewModel = authViewModel, 
@@ -206,6 +218,27 @@ fun AppNavigation(
                     onBackClick = { 
                         showProfileOverlay = false
                         showMenuOverlay = true
+                    }
+                )
+            }
+
+            // PANEL DE SEGURIDAD (PANTALLA COMPLETA, SIN CURVAS)
+            AnimatedVisibility(
+                visible = showSecurityOverlay,
+                enter = slideInHorizontally(initialOffsetX = { it }),
+                exit = slideOutHorizontally(targetOffsetX = { it }),
+                modifier = Modifier.fillMaxSize().systemBarsPadding()
+            ) {
+                SecurityScreen(
+                    authViewModel = authViewModel,
+                    userViewModel = userViewModel,
+                    onBackClick = { 
+                        showSecurityOverlay = false
+                        showMenuOverlay = true
+                    },
+                    onAccountDeleted = {
+                        showSecurityOverlay = false
+                        navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } }
                     }
                 )
             }

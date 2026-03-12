@@ -64,12 +64,11 @@ class StudyViewModel : ViewModel() {
         }
     }
 
-    fun createStudy(token: String, study: Study) {
+    fun createStudy(study: Study) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.studyService.createStudy(authToken, study)
+                val response = RetrofitClient.studyService.createStudy(study)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Estudio registrado correctamente")
                     fetchStudies()
@@ -82,12 +81,11 @@ class StudyViewModel : ViewModel() {
         }
     }
 
-    fun updateStudy(token: String, id: Int, study: Study) {
+    fun updateStudy(id: Int, study: Study) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.studyService.updateStudy(authToken, id, study)
+                val response = RetrofitClient.studyService.updateStudy(id, study)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Estudio actualizado correctamente")
                     fetchStudies()
@@ -100,12 +98,11 @@ class StudyViewModel : ViewModel() {
         }
     }
 
-    fun deleteStudy(token: String, id: Int) {
+    fun deleteStudy(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.studyService.deleteStudy(authToken, id)
+                val response = RetrofitClient.studyService.deleteStudy(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Estudio eliminado correctamente")
                     fetchStudies()

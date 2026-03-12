@@ -47,6 +47,9 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     
+    // Biometric
+    implementation(libs.androidx.biometric)
+    
     // Retrofit & Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)

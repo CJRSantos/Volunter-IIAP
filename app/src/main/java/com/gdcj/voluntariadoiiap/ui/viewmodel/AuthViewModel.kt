@@ -4,8 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
-import com.gdcj.voluntariadoiiap.data.model.LoginRequest
-import com.gdcj.voluntariadoiiap.data.model.RegisterRequest
+import com.gdcj.voluntariadoiiap.data.model.*
 import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,11 +40,10 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     init {
         // Sincronizar datos si ya hay sesión activa
         if (isUserLoggedIn()) {
-            val token = sessionManager.fetchAuthToken()
             val email = sessionManager.fetchUserEmail()
-            if (token != null && email != null) {
+            if (email != null) {
                 viewModelScope.launch {
-                    fetchAndSaveUserInfo(token, email)
+                    fetchAndSaveUserInfo(email)
                 }
             }
         }
@@ -76,7 +74,7 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     sessionManager.saveUserData(_userName.value, email)
                     
                     // Obtener info completa del usuario
-                    fetchAndSaveUserInfo(token, email)
+                    fetchAndSaveUserInfo(email)
                     
                     _authState.value = AuthState.Success("Bienvenido")
                     onSuccess(_userName.value, email)
@@ -90,10 +88,9 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
-    private suspend fun fetchAndSaveUserInfo(token: String, email: String) {
+    private suspend fun fetchAndSaveUserInfo(email: String) {
         try {
-            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-            val usersResponse = RetrofitClient.userService.getUsers(authToken)
+            val usersResponse = RetrofitClient.userService.getUsers()
             if (usersResponse.isSuccessful) {
                 val user = usersResponse.body()?.find { it.email == email }
                 if (user != null) {
@@ -132,6 +129,29 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                 _authState.value = AuthState.Error("Error de red: ${e.message}")
             }
         }
+    }
+
+    fun changePassword(current: String, new: String, confirm: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                val response = RetrofitClient.authService.changePassword(
+                    ChangePasswordRequest(current, new, confirm)
+                )
+                if (response.isSuccessful) {
+                    _authState.value = AuthState.Success(response.body()?.message ?: "Contraseña actualizada")
+                } else {
+                    val errorMsg = parseError(response.errorBody()?.string())
+                    _authState.value = AuthState.Error(errorMsg ?: "Error al cambiar contraseña")
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Error de red: ${e.message}")
+            }
+        }
+    }
+
+    fun resetAuthState() {
+        _authState.value = AuthState.Idle
     }
 
     private fun parseError(errorBody: String?): String? {

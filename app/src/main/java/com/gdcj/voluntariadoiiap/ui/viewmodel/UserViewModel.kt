@@ -47,12 +47,11 @@ class UserViewModel : ViewModel() {
     private val _userExperiences = MutableStateFlow<List<Experience>>(emptyList())
     val userExperiences = _userExperiences.asStateFlow()
 
-    fun fetchUsers(token: String) {
+    fun fetchUsers() {
         viewModelScope.launch {
             _userListState.value = UserListState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.getUsers(authToken)
+                val response = RetrofitClient.userService.getUsers()
                 if (response.isSuccessful) {
                     _userListState.value = UserListState.Success(response.body() ?: emptyList())
                 } else {
@@ -64,16 +63,15 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun fetchUserById(token: String, id: Int) {
+    fun fetchUserById(id: Int) {
         viewModelScope.launch {
             _userDetailState.value = UserDetailState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.getUserById(authToken, id)
+                val response = RetrofitClient.userService.getUserById(id)
                 if (response.isSuccessful && response.body() != null) {
                     _userDetailState.value = UserDetailState.Success(response.body()!!)
-                    fetchUserStudies(token, id)
-                    fetchUserExperiences(token, id)
+                    fetchUserStudies(id)
+                    fetchUserExperiences(id)
                 } else {
                     _userDetailState.value = UserDetailState.Error("Error: ${response.code()}")
                 }
@@ -83,11 +81,10 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun fetchUserStudies(token: String, userId: Int) {
+    fun fetchUserStudies(userId: Int) {
         viewModelScope.launch {
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.getUserStudies(authToken, userId)
+                val response = RetrofitClient.userService.getUserStudies(userId)
                 if (response.isSuccessful) {
                     _userStudies.value = response.body() ?: emptyList()
                 }
@@ -95,11 +92,10 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun fetchUserExperiences(token: String, userId: Int) {
+    fun fetchUserExperiences(userId: Int) {
         viewModelScope.launch {
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.getUserExperiences(authToken, userId)
+                val response = RetrofitClient.userService.getUserExperiences(userId)
                 if (response.isSuccessful) {
                     _userExperiences.value = response.body() ?: emptyList()
                 }
@@ -107,15 +103,14 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun createUser(token: String, user: User) {
+    fun createUser(user: User) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.createUser(authToken, user)
+                val response = RetrofitClient.userService.createUser(user)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Usuario creado")
-                    fetchUsers(token)
+                    fetchUsers()
                 } else {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
@@ -125,12 +120,11 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun updateUser(token: String, id: Int, user: User) {
+    fun updateUser(id: Int, user: User) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.updateUser(authToken, id, user)
+                val response = RetrofitClient.userService.updateUser(id, user)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Usuario actualizado")
                     _userDetailState.value = UserDetailState.Success(response.body()!!)
@@ -143,15 +137,14 @@ class UserViewModel : ViewModel() {
         }
     }
 
-    fun deleteUser(token: String, id: Int) {
+    fun deleteUser(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.userService.deleteUser(authToken, id)
+                val response = RetrofitClient.userService.deleteUser(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Usuario eliminado")
-                    fetchUsers(token)
+                    fetchUsers()
                 } else {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
