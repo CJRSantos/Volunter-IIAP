@@ -32,7 +32,6 @@ sealed class OperationState {
 }
 
 class UserViewModel : ViewModel() {
-
     private val _userListState = MutableStateFlow<UserListState>(UserListState.Idle)
     val userListState = _userListState.asStateFlow()
 
@@ -69,14 +68,10 @@ class UserViewModel : ViewModel() {
             _userDetailState.value = UserDetailState.Loading
             try {
                 val response = RetrofitClient.userService.getUserById(id)
-                if (response.isSuccessful) {
-                    response.body()?.let { user ->
-                        _userDetailState.value = UserDetailState.Success(user)
-                        fetchUserStudies(id)
-                        fetchUserExperiences(id)
-                    } ?: run {
-                        _userDetailState.value = UserDetailState.Error("Usuario no encontrado")
-                    }
+                if (response.isSuccessful && response.body() != null) {
+                    _userDetailState.value = UserDetailState.Success(response.body()!!)
+                    fetchUserStudies(id)
+                    fetchUserExperiences(id)
                 } else {
                     _userDetailState.value = UserDetailState.Error("Error: ${response.code()}")
                 }
@@ -93,9 +88,7 @@ class UserViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     _userStudies.value = response.body() ?: emptyList()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -106,9 +99,7 @@ class UserViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     _userExperiences.value = response.body() ?: emptyList()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { }
         }
     }
 
@@ -136,9 +127,7 @@ class UserViewModel : ViewModel() {
                 val response = RetrofitClient.userService.updateUser(id, user)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Usuario actualizado")
-                    response.body()?.let { updatedUser ->
-                        _userDetailState.value = UserDetailState.Success(updatedUser)
-                    }
+                    _userDetailState.value = UserDetailState.Success(response.body()!!)
                 } else {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
@@ -164,7 +153,7 @@ class UserViewModel : ViewModel() {
             }
         }
     }
-
+    
     fun resetOperationState() {
         _operationState.value = OperationState.Idle
     }

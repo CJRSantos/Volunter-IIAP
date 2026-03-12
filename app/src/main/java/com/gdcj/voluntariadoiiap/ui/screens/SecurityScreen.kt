@@ -1,9 +1,13 @@
 package com.gdcj.voluntariadoiiap.ui.screens
 
+import android.widget.Toast
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,17 +19,88 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthState
+import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
+import com.gdcj.voluntariadoiiap.ui.viewmodel.OperationState
+import com.gdcj.voluntariadoiiap.ui.viewmodel.UserViewModel
+import java.util.concurrent.Executors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SecurityScreen(onBackClick: () -> Unit) {
-    var biometricEnabled by remember { mutableStateOf(false) }
+fun SecurityScreen(
+    authViewModel: AuthViewModel,
+    userViewModel: UserViewModel,
+    onBackClick: () -> Unit,
+    onAccountDeleted: () -> Unit
+) {
+    val context = LocalContext.current
+    val sessionManager = authViewModel.sessionManager
+    val userId by authViewModel.userId.collectAsState()
+    
+    var biometricEnabled by remember { mutableStateOf(sessionManager.isBiometricEnabled()) }
     var twoFactorEnabled by remember { mutableStateOf(false) }
     var publicProfile by remember { mutableStateOf(true) }
     var showDataProcessing by remember { mutableStateOf(true) }
+
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    
+    val authState by authViewModel.authState.collectAsState()
+    val userOpState by userViewModel.operationState.collectAsState()
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            Toast.makeText(context, (authState as AuthState.Success).message, Toast.LENGTH_SHORT).show()
+            showChangePasswordDialog = false
+            authViewModel.resetAuthState()
+        } else if (authState is AuthState.Error) {
+            Toast.makeText(context, (authState as AuthState.Error).message, Toast.LENGTH_SHORT).show()
+            authViewModel.resetAuthState()
+        }
+    }
+
+    LaunchedEffect(userOpState) {
+        if (userOpState is OperationState.Success) {
+            if ((userOpState as OperationState.Success).message == "Usuario eliminado") {
+                Toast.makeText(context, "Cuenta eliminada correctamente", Toast.LENGTH_SHORT).show()
+                authViewModel.logout { onAccountDeleted() }
+            }
+            userViewModel.resetOperationState()
+        } else if (userOpState is OperationState.Error) {
+            Toast.makeText(context, (userOpState as OperationState.Error).message, Toast.LENGTH_SHORT).show()
+            userViewModel.resetOperationState()
+        }
+    }
+
+    fun showBiometricPrompt(onSuccess: () -> Unit) {
+        val executor = Executors.newSingleThreadExecutor()
+        val biometricPrompt = BiometricPrompt(
+            context as FragmentActivity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    (context as FragmentActivity).runOnUiThread { onSuccess() }
+                }
+            }
+        )
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Autenticación Biométrica")
+            .setSubtitle("Confirma tu identidad para continuar")
+            .setNegativeButtonText("Cancelar")
+            .build()
+
+        biometricPrompt.authenticate(promptInfo)
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -59,14 +134,35 @@ fun SecurityScreen(onBackClick: () -> Unit) {
                     icon = Icons.Outlined.Lock,
                     title = "Cambiar Contraseña",
                     subtitle = "Actualiza tu contraseña regularmente",
-                    onClick = { /* Lógica para cambiar pass */ }
+                    onClick = { showChangePasswordDialog = true }
                 )
                 SecurityItem(
                     icon = Icons.Outlined.Fingerprint,
                     title = "Acceso Biométrico",
                     subtitle = "Usa tu huella para entrar",
                     trailing = {
-                        Switch(checked = biometricEnabled, onCheckedChange = { biometricEnabled = it })
+                        Switch(
+                            checked = biometricEnabled, 
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    val biometricManager = BiometricManager.from(context)
+                                    when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
+                                        BiometricManager.BIOMETRIC_SUCCESS -> {
+                                            showBiometricPrompt {
+                                                biometricEnabled = true
+                                                sessionManager.setBiometricEnabled(true)
+                                            }
+                                        }
+                                        else -> {
+                                            Toast.makeText(context, "Biometría no disponible", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                } else {
+                                    biometricEnabled = false
+                                    sessionManager.setBiometricEnabled(false)
+                                }
+                            }
+                        )
                     }
                 )
                 SecurityItem(
@@ -113,13 +209,131 @@ fun SecurityScreen(onBackClick: () -> Unit) {
                     subtitle = "Esta acción es permanente",
                     iconColor = MaterialTheme.colorScheme.error,
                     labelColor = MaterialTheme.colorScheme.error,
-                    onClick = { /* Mostrar diálogo de confirmación */ }
+                    onClick = { showDeleteConfirmation = true }
                 )
                 
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
+
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            isLoading = authState is AuthState.Loading,
+            onDismiss = { showChangePasswordDialog = false },
+            onConfirm = { current, new, confirm ->
+                authViewModel.changePassword(current, new, confirm)
+            }
+        )
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("¿Eliminar Cuenta?", fontWeight = FontWeight.Bold) },
+            text = { Text("Esta acción no se puede deshacer. Se borrarán todos tus datos de voluntario de forma permanente.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (userId != -1) {
+                            userViewModel.deleteUser(userId)
+                        } else {
+                            Toast.makeText(context, "Error: No se pudo identificar al usuario", Toast.LENGTH_SHORT).show()
+                        }
+                        showDeleteConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Eliminar definitivamente", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun ChangePasswordDialog(
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String) -> Unit
+) {
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    
+    var currentVisible by remember { mutableStateOf(false) }
+    var newVisible by remember { mutableStateOf(false) }
+    var confirmVisible by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Cambiar Contraseña", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it },
+                    label = { Text("Contraseña Actual") },
+                    visualTransformation = if (currentVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { currentVisible = !currentVisible }) {
+                            Icon(if (currentVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it },
+                    label = { Text("Nueva Contraseña") },
+                    visualTransformation = if (newVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { newVisible = !newVisible }) {
+                            Icon(if (newVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it },
+                    label = { Text("Confirmar Nueva Contraseña") },
+                    visualTransformation = if (confirmVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { confirmVisible = !confirmVisible }) {
+                            Icon(if (confirmVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(currentPassword, newPassword, confirmPassword) },
+                enabled = !isLoading && currentPassword.isNotBlank() && newPassword.isNotBlank() && newPassword == confirmPassword
+            ) {
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                else Text("Actualizar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 @Composable
@@ -158,19 +372,47 @@ fun SecurityItem(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                    .background(
+                        color = iconColor.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(20.dp)
+                )
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = labelColor)
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = labelColor,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            trailing?.invoke() ?: if (onClick != null) {
-                Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.outline)
-            } else {}
+            
+            if (trailing != null) {
+                trailing()
+            } else if (onClick != null) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
         }
     }
 }

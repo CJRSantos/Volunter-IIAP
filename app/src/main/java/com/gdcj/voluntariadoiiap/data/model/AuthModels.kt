@@ -33,3 +33,14 @@ data class LogoutResponse(
     val message: String,
     val logoutUrl: String
 )
+
+// Change Password
+data class ChangePasswordRequest(
+    val current_password: String,
+    val new_password: String,
+    val new_password_confirmation: String
+)
+
+data class ChangePasswordResponse(
+    val message: String
+)

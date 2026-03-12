@@ -20,6 +20,8 @@ sealed class AppScreens(
 
     object AdditionalInfoScreen : AppScreens("additional_info_screen", "Información", Icons.Default.Home)
 
+    object PostulacionScreen : AppScreens("postulacion_screen", "Postulación", Icons.Default.Description)
+
     object AreasScreen : AppScreens("areas_screen", "Áreas", Icons.Default.List) {
         fun createRoute(name: String, email: String) = "areas_screen?name=$name&email=$email"
     }

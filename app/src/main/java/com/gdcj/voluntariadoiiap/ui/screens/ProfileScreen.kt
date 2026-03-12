@@ -19,6 +19,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.Subject
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -176,20 +178,9 @@ fun ProfileScreen(
         ModalBottomSheet(onDismissRequest = { showSheetType = null }, sheetState = sheetState, dragHandle = { BottomSheetDefaults.DragHandle() }) {
             Box(modifier = Modifier.fillMaxHeight(0.85f).navigationBarsPadding()) {
                 when (showSheetType) {
-                    SheetType.PERSONAL -> PersonalForm(
-                        state = userDetailState,
-                        onDismiss = { showSheetType = null }
-                    ) { updatedUser ->
-                        if (userId != -1) {
-                            userViewModel.updateUser(
-                                id = userId,
-                                user = updatedUser
-                            )
-                            authViewModel.updateLocalUserData(
-                                updatedUser.name,
-                                updatedUser.email
-                            )
-                        }
+                    SheetType.PERSONAL -> PersonalForm(userDetailState, onDismiss = { showSheetType = null }) { updatedUser ->
+                        userViewModel.updateUser(userId, updatedUser)
+                        authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
                         showSheetType = null
                     }
                     SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
@@ -200,7 +191,7 @@ fun ProfileScreen(
                         experienceViewModel.createExperience(exp.copy(user_id = userId))
                         showSheetType = null
                     }
-                    else -> {}
+                    null -> {}
                 }
             }
         }
@@ -279,36 +270,29 @@ fun ImpactItem(icon: ImageVector, value: String, label: String, modifier: Modifi
             Icon(icon, null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
 fun InfoPersonalContent(state: UserDetailState, onEditClick: () -> Unit) {
-    val user = (state as? UserDetailState.Success)?.user
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Información Personal", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
-                    IconButton(onClick = onEditClick, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape).size(36.dp)) {
-                        Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Información Personal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            FloatingActionButton(onClick = onEditClick, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, null) }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                val user = (state as? UserDetailState.Success)?.user
                 InfoItem(Icons.Default.Badge, "Nombre Completo", user?.name ?: "No especificado")
                 InfoItem(Icons.Default.Email, "Correo Electrónico", user?.email ?: "No especificado")
                 InfoItem(Icons.Default.Phone, "Teléfono", user?.phone ?: "No especificado")
                 InfoItem(Icons.Default.LocationOn, "Ubicación", user?.location ?: "No especificado")
-                InfoItem(Icons.Default.Notes, "Sobre mí", user?.bio ?: "Sin biografía")
+                InfoItem(Icons.AutoMirrored.Filled.Notes, "Sobre mí", user?.bio ?: "Sin biografía")
             }
         }
     }
@@ -316,284 +300,178 @@ fun InfoPersonalContent(state: UserDetailState, onEditClick: () -> Unit) {
 
 @Composable
 fun InfoItem(icon: ImageVector, label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.Top) {
-        Surface(modifier = Modifier.size(36.dp), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)) {
-            Icon(icon, null, modifier = Modifier.padding(8.dp), tint = MaterialTheme.colorScheme.secondary)
+    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+        Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+            Icon(icon, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-            Text(value, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onDeleteClick: (Study) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Formación Académica", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Button(onClick = onAddClick, shape = RoundedCornerShape(12.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Añadir", fontSize = 14.sp)
-            }
+            Text("Formación Académica", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            FloatingActionButton(onClick = onAddClick, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Add, null) }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        if (studies.isEmpty()) {
-            EmptyState(Icons.Default.School, "No hay formación registrada")
-        } else {
-            studies.forEach { study ->
-                StudyItem(study) { onDeleteClick(study) }
-                Spacer(modifier = Modifier.height(12.dp))
+        if (studies.isEmpty()) EmptyState("No has agregado estudios aún")
+        else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                studies.forEach { study ->
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.School, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(study.degree, fontWeight = FontWeight.Bold)
+                                Text("${study.institution} • ${study.startDate}", fontSize = 12.sp)
+                            }
+                            IconButton(onClick = { onDeleteClick(study) }) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                        }
+                    }
+                }
             }
-        }
-    }
-}
-
-@Composable
-fun StudyItem(study: Study, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                Icon(Icons.Default.School, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(study.institution, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text("${study.degree} en ${study.fieldOfStudy}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${study.startDate} - ${study.endDate ?: "Presente"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-            }
-            IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)) }
         }
     }
 }
 
 @Composable
 fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onDeleteClick: (Experience) -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Experiencia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Button(onClick = onAddClick, shape = RoundedCornerShape(12.dp)) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Añadir")
-            }
+            Text("Experiencia", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            FloatingActionButton(onClick = onAddClick, containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.White, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Add, null) }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        if (experiences.isEmpty()) {
-            EmptyState(Icons.Default.VolunteerActivism, "No hay experiencia registrada")
-        } else {
-            experiences.forEach { exp ->
-                ExperienceItem(exp) { onDeleteClick(exp) }
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun ExperienceItem(exp: Experience, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Icon(Icons.Default.VolunteerActivism, null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.secondary)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(exp.position, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(exp.company, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                    Text("${exp.startDate} - ${exp.endDate ?: "Presente"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f)) }
-            }
-            if (!exp.description.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(exp.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 18.sp)
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyState(icon: ImageVector, message: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 14.sp, textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -> Unit) {
-    val user = (state as? UserDetailState.Success)?.user
-    var name by remember { mutableStateOf(user?.name ?: "") }
-    var email by remember { mutableStateOf(user?.email ?: "") }
-    var phone by remember { mutableStateOf(user?.phone ?: "") }
-    var location by remember { mutableStateOf(user?.location ?: "") }
-    var bio by remember { mutableStateOf(user?.bio ?: "") }
-
-    Column(modifier = Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader(title = "Editar Información", onDismiss = onDismiss)
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
-            CustomTextField(value = email, onValueChange = { email = it }, label = "Email", icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
-            CustomTextField(value = phone, onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, label = "Teléfono (9 dígitos)", icon = Icons.Default.Phone, keyboardType = KeyboardType.Number)
-            CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
-            CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.Default.Notes, isMultiline = true)
-            Spacer(modifier = Modifier.height(32.dp))
-            PrimaryButton(text = "Guardar Cambios", icon = Icons.Default.Save) {
-                onSave(User(id = user?.id, name = name, email = email, phone = phone, location = location, bio = bio))
-            }
-        }
-    }
-}
-
-@Composable
-fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
-    var inst by remember { mutableStateOf("") }
-    var deg by remember { mutableStateOf("") }
-    var field by remember { mutableStateOf("") }
-    var start by remember { mutableStateOf("") }
-    var end by remember { mutableStateOf("") }
-    var degExpanded by remember { mutableStateOf(false) }
-    val degOptions = listOf("Bachiller", "Licenciatura", "Maestría", "Doctorado", "Técnico", "Otro")
-
-    Column(modifier = Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader(title = "Añadir Formación", onDismiss = onDismiss)
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            CustomTextField(value = inst, onValueChange = { inst = it }, label = "Institución", icon = Icons.Default.AccountBalance)
-            Box(modifier = Modifier.padding(vertical = 8.dp)) {
-                OutlinedTextField(
-                    value = deg, onValueChange = {}, readOnly = true, label = { Text("Grado / Título") },
-                    leadingIcon = { 
-                        Surface(modifier = Modifier.padding(start = 8.dp).size(36.dp), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)) {
-                            Icon(Icons.Default.WorkspacePremium, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp)) 
+        if (experiences.isEmpty()) EmptyState("No has agregado experiencias aún")
+        else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                experiences.forEach { exp ->
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Work, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(exp.position, fontWeight = FontWeight.Bold)
+                                Text("${exp.company} • ${exp.startDate}", fontSize = 12.sp)
+                            }
+                            IconButton(onClick = { onDeleteClick(exp) }) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
                         }
-                    },
-                    trailingIcon = { IconButton(onClick = { degExpanded = true }) { Icon(Icons.Default.ArrowDropDown, null) } },
-                    modifier = Modifier.fillMaxWidth().clickable { degExpanded = true }, shape = RoundedCornerShape(16.dp)
-                )
-                DropdownMenu(expanded = degExpanded, onDismissRequest = { degExpanded = false }, modifier = Modifier.fillMaxWidth(0.8f)) {
-                    degOptions.forEach { DropdownMenuItem(text = { Text(it) }, onClick = { deg = it; degExpanded = false }) }
+                    }
                 }
             }
-            CustomTextField(value = field, onValueChange = { field = it }, label = "Especialidad", icon = Icons.Default.Subject)
-            Row {
-                Box(modifier = Modifier.weight(1f)) { CustomTextField(value = start, onValueChange = { start = it }, label = "Inicio (Año)", icon = Icons.Default.CalendarToday) }
-                Spacer(modifier = Modifier.width(12.dp))
-                Box(modifier = Modifier.weight(1f)) { CustomTextField(value = end, onValueChange = { end = it }, label = "Fin", icon = Icons.Default.EventAvailable) }
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            PrimaryButton(text = "Añadir Formación", icon = Icons.Default.CheckCircle) { onSave(Study(institution = inst, degree = deg, fieldOfStudy = field, startDate = start, endDate = end.ifEmpty { null }, user_id = 0)) }
         }
-    }
-}
-
-@Composable
-fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
-    var comp by remember { mutableStateOf("") }
-    var pos by remember { mutableStateOf("") }
-    var start by remember { mutableStateOf("") }
-    var end by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-        FormHeader(title = "Nueva Experiencia", onDismiss = onDismiss)
-        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-            CustomTextField(value = comp, onValueChange = { comp = it }, label = "Organización", icon = Icons.Default.Business)
-            CustomTextField(value = pos, onValueChange = { pos = it }, label = "Cargo / Rol", icon = Icons.Default.WorkOutline)
-            Row {
-                Box(modifier = Modifier.weight(1f)) { CustomTextField(value = start, onValueChange = { start = it }, label = "Inicio", icon = Icons.Default.Today) }
-                Spacer(modifier = Modifier.width(12.dp))
-                Box(modifier = Modifier.weight(1f)) { CustomTextField(value = end, onValueChange = { end = it }, label = "Fin", icon = Icons.Default.Done) }
-            }
-            CustomTextField(value = desc, onValueChange = { desc = it }, label = "Descripción", icon = Icons.Default.Description, isMultiline = true)
-            Spacer(modifier = Modifier.height(32.dp))
-            PrimaryButton(text = "Guardar Experiencia", icon = Icons.Default.Save) { onSave(Experience(company = comp, position = pos, startDate = start, endDate = end.ifEmpty { null }, description = desc, user_id = 0)) }
-        }
-    }
-}
-
-@Composable
-fun FormHeader(title: String, onDismiss: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
-        IconButton(onClick = onDismiss, modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)) { Icon(Icons.Default.Close, null, modifier = Modifier.size(20.dp)) }
-    }
-}
-
-@Composable
-fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector, keyboardType: KeyboardType = KeyboardType.Text, isMultiline: Boolean = false) {
-    OutlinedTextField(
-        value = value, onValueChange = onValueChange, label = { Text(label, fontSize = 14.sp) },
-        leadingIcon = { 
-            Surface(
-                modifier = Modifier.padding(start = 8.dp).size(36.dp),
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-            ) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
-            }
-        },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (isMultiline) ImeAction.Default else ImeAction.Next),
-        singleLine = !isMultiline,
-        minLines = if (isMultiline) 3 else 1,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary, 
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), 
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
-        )
-    )
-}
-
-@Composable
-fun PrimaryButton(text: String, icon: ImageVector, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp), elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)) {
-        Icon(icon, null, modifier = Modifier.size(20.dp)); Spacer(modifier = Modifier.width(10.dp)); Text(text, fontWeight = FontWeight.Bold, fontSize = 16.sp)
     }
 }
 
 @Composable
 fun AchievementsContent() {
     val achievements = listOf(
-        Achievement("Pionero", Icons.Default.Stars, Color(0xFFFFD700)),
-        Achievement("Eco-Guerrero", Icons.Default.Eco, Color(0xFF4CAF50)),
-        Achievement("Mentor", Icons.Default.RecordVoiceOver, Color(0xFF2196F3)),
-        Achievement("Colaborador Oro", Icons.Default.MilitaryTech, Color(0xFFFF9800)),
-        Achievement("Solidario", Icons.Default.Favorite, Color(0xFFE91E63)),
-        Achievement("Explorador", Icons.Default.Explore, Color(0xFF9C27B0))
+        Achievement("Primer Voluntariado", Icons.Default.Stars, Color(0xFFFFD700)),
+        Achievement("100 Horas Completadas", Icons.Default.Timer, Color(0xFFC0C0C0)),
+        Achievement("Héroe de la Selva", Icons.Default.Nature, Color(0xFF4CAF50)),
+        Achievement("Compromiso IIAP", Icons.Default.WorkspacePremium, Color(0xFFCD7F32))
     )
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Tus Logros Obtenidos", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(bottom = 16.dp))
-        LazyVerticalGrid(columns = GridCells.Fixed(3), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(achievements) { AchievementCard(it) }
+    LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        items(achievements) { achievement ->
+            Card(modifier = Modifier.fillMaxWidth().aspectRatio(1f), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = achievement.color.copy(alpha = 0.15f))) {
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                    Icon(achievement.icon, null, modifier = Modifier.size(48.dp), tint = achievement.color)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(achievement.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, textAlign = TextAlign.Center)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AchievementCard(achievement: Achievement) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Surface(modifier = Modifier.size(80.dp), shape = CircleShape, color = achievement.color.copy(alpha = 0.15f), border = BorderStroke(2.dp, achievement.color)) {
-            Icon(achievement.icon, null, modifier = Modifier.padding(20.dp), tint = achievement.color)
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(achievement.title, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+fun EmptyState(message: String) {
+    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
+}
+
+@Composable
+fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -> Unit) {
+    val currentUser = (state as? UserDetailState.Success)?.user
+    var name by remember { mutableStateOf(currentUser?.name ?: "") }
+    var email by remember { mutableStateOf(currentUser?.email ?: "") }
+    var phone by remember { mutableStateOf(currentUser?.phone ?: "") }
+    var location by remember { mutableStateOf(currentUser?.location ?: "") }
+    var bio by remember { mutableStateOf(currentUser?.bio ?: "") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Text("Editar Información", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
+        CustomTextField(value = email, onValueChange = { email = it }, label = "Correo Electrónico", icon = Icons.Default.Email)
+        CustomTextField(value = phone, onValueChange = { phone = it }, label = "Teléfono", icon = Icons.Default.Phone)
+        CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
+        CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.AutoMirrored.Filled.Notes, isMultiline = true)
+        Spacer(modifier = Modifier.height(30.dp))
+        Button(onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Guardar Cambios") }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
+    }
+}
+
+@Composable
+fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
+    var degree by remember { mutableStateOf("") }
+    var institution by remember { mutableStateOf("") }
+    var fieldOfStudy by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Text("Agregar Estudio", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomTextField(value = degree, onValueChange = { degree = it }, label = "Título/Carrera", icon = Icons.Default.School)
+        CustomTextField(value = institution, onValueChange = { institution = it }, label = "Institución", icon = Icons.Default.Business)
+        CustomTextField(value = fieldOfStudy, onValueChange = { fieldOfStudy = it }, label = "Campo de estudio", icon = Icons.AutoMirrored.Filled.Subject)
+        CustomTextField(value = startDate, onValueChange = { startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday)
+        Spacer(modifier = Modifier.height(30.dp))
+        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
+    }
+}
+
+@Composable
+fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
+    var position by remember { mutableStateOf("") }
+    var company by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Text("Agregar Experiencia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomTextField(value = position, onValueChange = { position = it }, label = "Cargo", icon = Icons.Default.Work)
+        CustomTextField(value = company, onValueChange = { company = it }, label = "Empresa/Organización", icon = Icons.Default.Business)
+        CustomTextField(value = startDate, onValueChange = { startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday)
+        CustomTextField(value = description, onValueChange = { description = it }, label = "Descripción", icon = Icons.AutoMirrored.Filled.Subject, isMultiline = true)
+        Spacer(modifier = Modifier.height(30.dp))
+        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
+    }
+}
+
+@Composable
+fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector, isMultiline: Boolean = false) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        singleLine = !isMultiline,
+        minLines = if (isMultiline) 3 else 1,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+    )
 }

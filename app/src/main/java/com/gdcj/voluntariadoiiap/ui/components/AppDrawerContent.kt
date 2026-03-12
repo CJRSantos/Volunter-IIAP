@@ -39,7 +39,8 @@ fun AppDrawerContent(
     Surface(
         modifier = Modifier.fillMaxHeight().width(320.dp),
         color = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
+        // Curva en el lado izquierdo (el que entra a la pantalla desde la derecha)
+        shape = RoundedCornerShape(topStart = 32.dp, bottomStart = 32.dp),
         tonalElevation = 2.dp
     ) {
         Column(
