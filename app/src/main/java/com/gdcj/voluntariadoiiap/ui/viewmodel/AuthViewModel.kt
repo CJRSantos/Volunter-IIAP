@@ -1,6 +1,7 @@
 package com.gdcj.voluntariadoiiap.ui.viewmodel
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
@@ -32,20 +33,17 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _userId = MutableStateFlow(sessionManager.fetchUserId())
     val userId = _userId.asStateFlow()
 
-    // Estado global para la foto de perfil
     private val _profilePictureUri = MutableStateFlow<Uri?>(
         sessionManager.fetchProfilePicture()?.let { Uri.parse(it) }
     )
     val profilePictureUri = _profilePictureUri.asStateFlow()
 
     init {
-        // Sincronizar datos si ya hay sesión activa
         if (isUserLoggedIn()) {
-            val token = sessionManager.fetchAuthToken()
             val email = sessionManager.fetchUserEmail()
-            if (token != null && email != null) {
+            if (email != null) {
                 viewModelScope.launch {
-                    fetchAndSaveUserInfo(token, email)
+                    fetchAndSaveUserInfo(email)
                 }
             }
         }
@@ -69,35 +67,43 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                 val response = RetrofitClient.authService.login(LoginRequest(email, pass))
                 if (response.isSuccessful) {
                     val body = response.body()
-                    val token = body?.token ?: ""
-                    sessionManager.saveAuthToken(token)
                     
-                    _userEmail.value = email
-                    sessionManager.saveUserData(_userName.value, email)
+                    // LOGS CRÍTICOS PARA DEBUGEAR EL TOKEN
+                    Log.d("TOKEN_DEBUG", "Cuerpo de respuesta: $body")
+                    val token = body?.token
                     
-                    // Obtener info completa del usuario
-                    fetchAndSaveUserInfo(token, email)
-                    
-                    _authState.value = AuthState.Success("Bienvenido")
-                    onSuccess(_userName.value, email)
+                    if (!token.isNullOrEmpty()) {
+                        Log.d("TOKEN_DEBUG", "Token recibido con éxito: ${token.take(10)}...")
+                        sessionManager.saveAuthToken(token)
+                        
+                        _userEmail.value = email
+                        sessionManager.saveUserData(_userName.value, email)
+                        fetchAndSaveUserInfo(email)
+                        
+                        _authState.value = AuthState.Success("Bienvenido")
+                        onSuccess(_userName.value, email)
+                    } else {
+                        Log.e("TOKEN_DEBUG", "¡EL TOKEN LLEGÓ NULO O VACÍO DESDE EL SERVIDOR!")
+                        _authState.value = AuthState.Error("Error: El servidor no envió un token válido")
+                    }
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string())
                     _authState.value = AuthState.Error(errorMsg ?: "Credenciales inválidas")
                 }
             } catch (e: Exception) {
+                Log.e("TOKEN_DEBUG", "Error de login", e)
                 _authState.value = AuthState.Error("Error de conexión: ${e.message}")
             }
         }
     }
 
-    private suspend fun fetchAndSaveUserInfo(token: String, email: String) {
+    private suspend fun fetchAndSaveUserInfo(email: String) {
         try {
-            val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-            val usersResponse = RetrofitClient.userService.getUsers(authToken)
+            val usersResponse = RetrofitClient.userService.getUsers()
             if (usersResponse.isSuccessful) {
                 val user = usersResponse.body()?.find { it.email == email }
                 if (user != null) {
-                    user.id?.let { 
+                    user.id?.let {
                         _userId.value = it
                         sessionManager.saveUserId(it)
                     }
@@ -105,7 +111,9 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     sessionManager.saveUserData(user.name, email)
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun register(name: String, email: String, pass: String, phone: String, onSuccess: (String, String) -> Unit) {
@@ -122,7 +130,6 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                     )
                 )
                 if (response.isSuccessful) {
-                    // Después de registrar, hacemos login automático para obtener el token
                     login(email, pass, onSuccess)
                 } else {
                     val errorMsg = parseError(response.errorBody()?.string())

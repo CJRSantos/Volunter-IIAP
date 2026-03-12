@@ -16,20 +16,17 @@ interface AreaApiService {
 
     @POST("areas")
     suspend fun createArea(
-        @Header("Authorization") token: String,
         @Body area: Area
     ): Response<Area>
 
     @PUT("areas/{id}")
     suspend fun updateArea(
-        @Header("Authorization") token: String,
         @Path("id") id: Int,
         @Body area: Area
     ): Response<Area>
 
     @DELETE("areas/{id}")
     suspend fun deleteArea(
-        @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
 }

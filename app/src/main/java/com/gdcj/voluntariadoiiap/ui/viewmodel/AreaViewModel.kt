@@ -1,5 +1,6 @@
 package com.gdcj.voluntariadoiiap.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.model.Area
@@ -38,12 +39,13 @@ class AreaViewModel : ViewModel() {
         }
     }
 
-    fun createArea(token: String, area: Area) {
+    fun createArea(name: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.areaService.createArea(authToken, area)
+                // El modelo Area usa 'description' para el nombre
+                val area = Area(description = name)
+                val response = RetrofitClient.areaService.createArea(area)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Área creada")
                     fetchAreas()
@@ -51,17 +53,19 @@ class AreaViewModel : ViewModel() {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
+                Log.e("AreaViewModel", "Error al crear área", e)
                 _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
             }
         }
     }
 
-    fun updateArea(token: String, id: Int, area: Area) {
+    fun updateArea(id: Int, name: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.areaService.updateArea(authToken, id, area)
+                // El modelo Area usa 'description' para el nombre
+                val area = Area(description = name)
+                val response = RetrofitClient.areaService.updateArea(id, area)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Área actualizada")
                     fetchAreas()
@@ -69,17 +73,17 @@ class AreaViewModel : ViewModel() {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
+                Log.e("AreaViewModel", "Error al actualizar área", e)
                 _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
             }
         }
     }
 
-    fun deleteArea(token: String, id: Int) {
+    fun deleteArea(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.areaService.deleteArea(authToken, id)
+                val response = RetrofitClient.areaService.deleteArea(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Área eliminada")
                     fetchAreas()
@@ -87,6 +91,7 @@ class AreaViewModel : ViewModel() {
                     _operationState.value = OperationState.Error("Error: ${response.code()}")
                 }
             } catch (e: Exception) {
+                Log.e("AreaViewModel", "Error al eliminar área", e)
                 _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
             }
         }

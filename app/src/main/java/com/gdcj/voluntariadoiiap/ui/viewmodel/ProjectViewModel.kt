@@ -38,12 +38,11 @@ class ProjectViewModel : ViewModel() {
         }
     }
 
-    fun createProject(token: String, project: Project) {
+    fun createProject(project: Project) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.projectService.createProject(authToken, project)
+                val response = RetrofitClient.projectService.createProject(project)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Proyecto creado")
                     fetchProjects()
@@ -56,12 +55,11 @@ class ProjectViewModel : ViewModel() {
         }
     }
 
-    fun updateProject(token: String, id: Int, project: Project) {
+    fun updateProject(id: Int, project: Project) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.projectService.updateProject(authToken, id, project)
+                val response = RetrofitClient.projectService.updateProject(id, project)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Proyecto actualizado")
                     fetchProjects()
@@ -74,12 +72,11 @@ class ProjectViewModel : ViewModel() {
         }
     }
 
-    fun deleteProject(token: String, id: Int) {
+    fun deleteProject(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.projectService.deleteProject(authToken, id)
+                val response = RetrofitClient.projectService.deleteProject(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Proyecto eliminado")
                     fetchProjects()

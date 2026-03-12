@@ -63,7 +63,6 @@ fun ProfileScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
     val userId by authViewModel.userId.collectAsState()
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
     
@@ -102,9 +101,9 @@ fun ProfileScreen(
 
     LaunchedEffect(userId) {
         if (userId != -1) {
-            userViewModel.fetchUserById(token, userId)
-            userViewModel.fetchUserStudies(token, userId)
-            userViewModel.fetchUserExperiences(token, userId)
+            userViewModel.fetchUserById(userId)
+            userViewModel.fetchUserStudies(userId)
+            userViewModel.fetchUserExperiences(userId)
         }
     }
 
@@ -119,9 +118,9 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(userOpState) { handleState(userOpState, { userViewModel.fetchUserById(token, userId) }, userViewModel::resetOperationState) }
-    LaunchedEffect(studyOpState) { handleState(studyOpState, { userViewModel.fetchUserStudies(token, userId) }, studyViewModel::resetOperationState) }
-    LaunchedEffect(expOpState) { handleState(expOpState, { userViewModel.fetchUserExperiences(token, userId) }, experienceViewModel::resetOperationState) }
+    LaunchedEffect(userOpState) { handleState(userOpState, { userViewModel.fetchUserById(userId) }, userViewModel::resetOperationState) }
+    LaunchedEffect(studyOpState) { handleState(studyOpState, { userViewModel.fetchUserStudies(userId) }, studyViewModel::resetOperationState) }
+    LaunchedEffect(expOpState) { handleState(expOpState, { userViewModel.fetchUserExperiences(userId) }, experienceViewModel::resetOperationState) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -144,8 +143,8 @@ fun ProfileScreen(
             Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                 when (selectedTab) {
                     0 -> InfoPersonalContent(userDetailState) { showSheetType = SheetType.PERSONAL }
-                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(token, it) } }
-                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(token, it) } }
+                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it) } }
+                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it) } }
                     3 -> AchievementsContent()
                 }
             }
@@ -177,20 +176,31 @@ fun ProfileScreen(
         ModalBottomSheet(onDismissRequest = { showSheetType = null }, sheetState = sheetState, dragHandle = { BottomSheetDefaults.DragHandle() }) {
             Box(modifier = Modifier.fillMaxHeight(0.85f).navigationBarsPadding()) {
                 when (showSheetType) {
-                    SheetType.PERSONAL -> PersonalForm(userDetailState, onDismiss = { showSheetType = null }) { updatedUser ->
-                        userViewModel.updateUser(token, userId, updatedUser)
-                        authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
+                    SheetType.PERSONAL -> PersonalForm(
+                        state = userDetailState,
+                        onDismiss = { showSheetType = null }
+                    ) { updatedUser ->
+                        if (userId != -1) {
+                            userViewModel.updateUser(
+                                id = userId,
+                                user = updatedUser
+                            )
+                            authViewModel.updateLocalUserData(
+                                updatedUser.name,
+                                updatedUser.email
+                            )
+                        }
                         showSheetType = null
                     }
                     SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
-                        studyViewModel.createStudy(token, study.copy(user_id = userId))
+                        studyViewModel.createStudy(study.copy(user_id = userId))
                         showSheetType = null
                     }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
-                        experienceViewModel.createExperience(token, exp.copy(user_id = userId))
+                        experienceViewModel.createExperience(exp.copy(user_id = userId))
                         showSheetType = null
                     }
-                    null -> {}
+                    else -> {}
                 }
             }
         }
@@ -231,7 +241,7 @@ private fun ProfileHeader(name: String, email: String, profilePictureUri: Uri?, 
                     }
                 }
                 Surface(modifier = Modifier.size(32.dp).align(Alignment.BottomEnd), shape = CircleShape, color = MaterialTheme.colorScheme.secondary, shadowElevation = 4.dp) {
-                    Icon(Icons.Default.Edit, null, modifier = Modifier.padding(8.dp), tint = Color.White) // CAMBIADO A ICONO DE LÁPIZ
+                    Icon(Icons.Default.Edit, null, modifier = Modifier.padding(8.dp), tint = Color.White)
                 }
             }
 
@@ -287,7 +297,7 @@ fun InfoPersonalContent(state: UserDetailState, onEditClick: () -> Unit) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Información Personal", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
-                    IconButton(onClick = onEditClick, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape).size(36.dp)) { 
+                    IconButton(onClick = onEditClick, modifier = Modifier.background(MaterialTheme.colorScheme.primary, CircleShape).size(36.dp)) {
                         Icon(Icons.Default.Edit, null, tint = Color.White, modifier = Modifier.size(18.dp))
                     }
                 }
@@ -439,24 +449,13 @@ fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -
         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
             CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
             CustomTextField(value = email, onValueChange = { email = it }, label = "Email", icon = Icons.Default.Email, keyboardType = KeyboardType.Email)
-            
-            // VALIDACIÓN TELÉFONO: solo números y máximo 9 dígitos
-            CustomTextField(
-                value = phone, 
-                onValueChange = { newValue ->
-                    if (newValue.length <= 9 && newValue.all { it.isDigit() }) {
-                        phone = newValue
-                    }
-                }, 
-                label = "Teléfono (9 dígitos)", 
-                icon = Icons.Default.Phone, 
-                keyboardType = KeyboardType.Number
-            )
-            
+            CustomTextField(value = phone, onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, label = "Teléfono (9 dígitos)", icon = Icons.Default.Phone, keyboardType = KeyboardType.Number)
             CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
             CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.Default.Notes, isMultiline = true)
             Spacer(modifier = Modifier.height(32.dp))
-            PrimaryButton(text = "Guardar Cambios", icon = Icons.Default.Save) { onSave(User(id = user?.id ?: 0, name = name, email = email, phone = phone, location = location, bio = bio)) }
+            PrimaryButton(text = "Guardar Cambios", icon = Icons.Default.Save) {
+                onSave(User(id = user?.id, name = name, email = email, phone = phone, location = location, bio = bio))
+            }
         }
     }
 }
@@ -540,7 +539,6 @@ fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: Strin
     OutlinedTextField(
         value = value, onValueChange = onValueChange, label = { Text(label, fontSize = 14.sp) },
         leadingIcon = { 
-            // ICONO NOTABLE CON CONTENEDOR
             Surface(
                 modifier = Modifier.padding(start = 8.dp).size(36.dp),
                 shape = RoundedCornerShape(10.dp),
@@ -549,7 +547,7 @@ fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: Strin
                 Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
             }
         },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), 
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (isMultiline) ImeAction.Default else ImeAction.Next),
         singleLine = !isMultiline,

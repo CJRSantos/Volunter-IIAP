@@ -64,12 +64,11 @@ class ExperienceViewModel : ViewModel() {
         }
     }
 
-    fun createExperience(token: String, experience: Experience) {
+    fun createExperience(experience: Experience) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.experienceService.createExperience(authToken, experience)
+                val response = RetrofitClient.experienceService.createExperience(experience)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Experiencia creada correctamente")
                     fetchExperiences()
@@ -82,12 +81,11 @@ class ExperienceViewModel : ViewModel() {
         }
     }
 
-    fun updateExperience(token: String, id: Int, experience: Experience) {
+    fun updateExperience(id: Int, experience: Experience) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.experienceService.updateExperience(authToken, id, experience)
+                val response = RetrofitClient.experienceService.updateExperience(id, experience)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Experiencia actualizada correctamente")
                     fetchExperiences()
@@ -100,12 +98,11 @@ class ExperienceViewModel : ViewModel() {
         }
     }
 
-    fun deleteExperience(token: String, id: Int) {
+    fun deleteExperience(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.experienceService.deleteExperience(authToken, id)
+                val response = RetrofitClient.experienceService.deleteExperience(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Experiencia eliminada correctamente")
                     fetchExperiences()

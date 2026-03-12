@@ -16,20 +16,17 @@ interface ProjectApiService {
 
     @POST("projects")
     suspend fun createProject(
-        @Header("Authorization") token: String,
         @Body project: Project
     ): Response<Project>
 
     @PUT("projects/{id}")
     suspend fun updateProject(
-        @Header("Authorization") token: String,
         @Path("id") id: Int,
         @Body project: Project
     ): Response<Project>
 
     @DELETE("projects/{id}")
     suspend fun deleteProject(
-        @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
 }

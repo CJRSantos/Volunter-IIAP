@@ -16,20 +16,17 @@ interface ExperienceApiService {
 
     @POST("experiences")
     suspend fun createExperience(
-        @Header("Authorization") token: String,
         @Body experience: Experience
     ): Response<Experience>
 
     @PUT("experiences/{id}")
     suspend fun updateExperience(
-        @Header("Authorization") token: String,
         @Path("id") id: Int,
         @Body experience: Experience
     ): Response<Experience>
 
     @DELETE("experiences/{id}")
     suspend fun deleteExperience(
-        @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
 }

@@ -64,12 +64,12 @@ class RoleViewModel : ViewModel() {
         }
     }
 
-    fun createRole(token: String, role: Role) {
+    fun createRole(name: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.roleService.createRole(authToken, role)
+                val role = Role(name = name)
+                val response = RetrofitClient.roleService.createRole(role)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Rol creado")
                     fetchRoles()
@@ -82,12 +82,12 @@ class RoleViewModel : ViewModel() {
         }
     }
 
-    fun updateRole(token: String, id: Int, role: Role) {
+    fun updateRole(id: Int, name: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.roleService.updateRole(authToken, id, role)
+                val role = Role(name = name)
+                val response = RetrofitClient.roleService.updateRole(id, role)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Rol actualizado")
                     fetchRoles()
@@ -100,12 +100,11 @@ class RoleViewModel : ViewModel() {
         }
     }
 
-    fun deleteRole(token: String, id: Int) {
+    fun deleteRole(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val authToken = if (token.startsWith("Bearer ")) token else "Bearer $token"
-                val response = RetrofitClient.roleService.deleteRole(authToken, id)
+                val response = RetrofitClient.roleService.deleteRole(id)
                 if (response.isSuccessful) {
                     _operationState.value = OperationState.Success("Rol eliminado")
                     fetchRoles()

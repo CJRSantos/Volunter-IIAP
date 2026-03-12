@@ -16,20 +16,17 @@ interface RoleApiService {
 
     @POST("roles")
     suspend fun createRole(
-        @Header("Authorization") token: String,
         @Body role: Role
     ): Response<Role>
 
     @PUT("roles/{id}")
     suspend fun updateRole(
-        @Header("Authorization") token: String,
         @Path("id") id: Int,
         @Body role: Role
     ): Response<Role>
 
     @DELETE("roles/{id}")
     suspend fun deleteRole(
-        @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
 }
