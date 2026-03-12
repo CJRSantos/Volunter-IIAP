@@ -16,20 +16,17 @@ interface StudyApiService {
 
     @POST("studies")
     suspend fun createStudy(
-        @Header("Authorization") token: String,
         @Body study: Study
     ): Response<Study>
 
     @PUT("studies/{id}")
     suspend fun updateStudy(
-        @Header("Authorization") token: String,
         @Path("id") id: Int,
         @Body study: Study
     ): Response<Study>
 
     @DELETE("studies/{id}")
     suspend fun deleteStudy(
-        @Header("Authorization") token: String,
         @Path("id") id: Int
     ): Response<Unit>
 }

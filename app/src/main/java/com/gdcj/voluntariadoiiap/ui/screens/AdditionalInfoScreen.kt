@@ -29,7 +29,10 @@ import com.gdcj.voluntariadoiiap.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdditionalInfoScreen(onBackClick: () -> Unit) {
+fun AdditionalInfoScreen(
+    onBackClick: () -> Unit,
+    onNavigateToPostulacion: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -64,7 +67,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Banner de Información
+            // Banner de Información con la imagen de manos y plantas
             Card(
                 shape = RoundedCornerShape(24.dp),
                 modifier = Modifier
@@ -73,17 +76,23 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
             ) {
                 Box {
                     AsyncImage(
-                        model = "https://www.gob.pe/institucion/iiap/noticias/imagen-de-referencia", // Reemplazar por URL real
-                        contentDescription = null,
+                        model = "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?q=80&w=1000&auto=format&fit=crop", // Imagen similar a la solicitada
+                        contentDescription = "Manos con plantas",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         placeholder = painterResource(R.drawable.ic_launcher_background),
                         error = painterResource(R.drawable.ic_launcher_background)
                     )
+                    // Capa de degradado para mejorar legibilidad
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f))
+                            .background(
+                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                                    startY = 300f
+                                )
+                            )
                             .padding(20.dp),
                         contentAlignment = Alignment.BottomStart
                     ) {
@@ -92,7 +101,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                                 text = "Plazo de postulación",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontSize = 18.sp
                             )
                             Text(
                                 text = "Hasta el 15 de Noviembre de 2025",
@@ -116,7 +125,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Para postular a una vacante de voluntario en BOSQUES, puedes elegir entre dos modalidades de presentación: presencial o virtual.",
+                text = "Para postular a una vacante de voluntario en el IIAP, puedes elegir entre dos modalidades de presentación: presencial o virtual.",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 lineHeight = 20.sp
@@ -129,7 +138,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 icon = Icons.Default.Business,
                 title = "Presencial",
                 description = "Presenta tus documentos en la mesa de partes del IIAP.",
-                onClick = {}
+                onClick = { /* Lógica para presencial */ }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -138,7 +147,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
                 icon = Icons.Default.Language,
                 title = "Virtual",
                 description = "Envía tus documentos a través de la vista de postulación.",
-                onClick = {}
+                onClick = onNavigateToPostulacion
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -152,7 +161,7 @@ fun AdditionalInfoScreen(onBackClick: () -> Unit) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Asegúrate de que tu archivo PDF no exceda los 10 MB y que todos los documentos estén correctamente ordenados y legibles.",
+                text = "Asegúrate de que tus archivos no excedan los 10 MB y que todos los documentos estén correctamente ordenados y legibles.",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 lineHeight = 20.sp

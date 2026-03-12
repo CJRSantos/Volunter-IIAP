@@ -46,11 +46,20 @@ class SessionManager(context: Context) {
         return prefs.getBoolean("dark_mode", false)
     }
 
+    // Biometría
+    fun setBiometricEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("biometric_enabled", enabled).apply()
+    }
+
+    fun isBiometricEnabled(): Boolean {
+        return prefs.getBoolean("biometric_enabled", false)
+    }
+
     fun clearSession() {
-        // Al cerrar sesión, podemos decidir si mantener el tema o no. 
-        // Normalmente se mantiene, así que solo borramos los datos del usuario.
         val darkMode = isDarkModeEnabled()
+        val biometric = isBiometricEnabled()
         prefs.edit().clear().apply()
         saveDarkMode(darkMode)
+        setBiometricEnabled(biometric)
     }
 }
