@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -174,7 +175,11 @@ fun ProfileScreen(
     }
 
     if (showSheetType != null) {
-        ModalBottomSheet(onDismissRequest = { showSheetType = null }, sheetState = sheetState, dragHandle = { BottomSheetDefaults.DragHandle() }) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheetType = null }, 
+            sheetState = sheetState, 
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
             Box(modifier = Modifier.fillMaxHeight(0.85f).navigationBarsPadding()) {
                 when (showSheetType) {
                     SheetType.PERSONAL -> PersonalForm(userDetailState, name, email, onDismiss = { showSheetType = null }) { updatedUser ->
@@ -185,11 +190,11 @@ fun ProfileScreen(
                         showSheetType = null
                     }
                     SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
-                        // studyViewModel.createStudy(study.copy(user_id = userId))
+                        studyViewModel.createStudy(study.copy(user_id = userUid.hashCode())) // Reusando dummy ID o ajustando segun sea necesario
                         showSheetType = null
                     }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
-                        // experienceViewModel.createExperience(exp.copy(user_id = userId))
+                        experienceViewModel.createExperience(exp.copy(user_id = userUid.hashCode())) // Ajustando segun sea necesario
                         showSheetType = null
                     }
                     null -> {}
@@ -413,7 +418,16 @@ fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: Stri
         Spacer(modifier = Modifier.height(20.dp))
         CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
         CustomTextField(value = email, onValueChange = { email = it }, label = "Correo Electrónico", icon = Icons.Default.Email)
-        CustomTextField(value = phone, onValueChange = { phone = it }, label = "Teléfono", icon = Icons.Default.Phone)
+        
+        // Validación Teléfono: Solo números y máximo 9 dígitos
+        CustomTextField(
+            value = phone, 
+            onValueChange = { if (it.length <= 9 && it.all { char -> char.isDigit() }) phone = it }, 
+            label = "Teléfono", 
+            icon = Icons.Default.Phone,
+            keyboardType = KeyboardType.Number
+        )
+        
         CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
         CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.AutoMirrored.Filled.Notes, isMultiline = true)
         Spacer(modifier = Modifier.height(30.dp))
@@ -435,7 +449,7 @@ fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
         CustomTextField(value = degree, onValueChange = { degree = it }, label = "Título/Carrera", icon = Icons.Default.School)
         CustomTextField(value = institution, onValueChange = { institution = it }, label = "Institución", icon = Icons.Default.Business)
         CustomTextField(value = fieldOfStudy, onValueChange = { fieldOfStudy = it }, label = "Campo de estudio", icon = Icons.AutoMirrored.Filled.Subject)
-        CustomTextField(value = startDate, onValueChange = { startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday)
+        CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         Spacer(modifier = Modifier.height(30.dp))
         Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
@@ -454,7 +468,7 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
         CustomTextField(value = position, onValueChange = { position = it }, label = "Cargo", icon = Icons.Default.Work)
         CustomTextField(value = company, onValueChange = { company = it }, label = "Empresa/Organización", icon = Icons.Default.Business)
-        CustomTextField(value = startDate, onValueChange = { startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday)
+        CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         CustomTextField(value = description, onValueChange = { description = it }, label = "Descripción", icon = Icons.AutoMirrored.Filled.Subject, isMultiline = true)
         Spacer(modifier = Modifier.height(30.dp))
         Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
@@ -463,7 +477,14 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
 }
 
 @Composable
-fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector, isMultiline: Boolean = false) {
+fun CustomTextField(
+    value: String, 
+    onValueChange: (String) -> Unit, 
+    label: String, 
+    icon: ImageVector, 
+    isMultiline: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -473,6 +494,9 @@ fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: Strin
         shape = RoundedCornerShape(12.dp),
         singleLine = !isMultiline,
         minLines = if (isMultiline) 3 else 1,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = ImeAction.Next
+        )
     )
 }

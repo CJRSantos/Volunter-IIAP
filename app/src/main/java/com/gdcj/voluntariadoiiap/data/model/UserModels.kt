@@ -6,8 +6,8 @@ data class User(
     val id: Int? = null,
     @SerializedName("auth0_id")
     val auth0Id: String? = null,
-    val name: String,
-    val email: String,
+    val name: String = "",
+    val email: String = "",
     @SerializedName("role_id")
     val roleId: Int? = null,
     val phone: String? = null,
