@@ -1,20 +1,15 @@
 package com.gdcj.voluntariadoiiap.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.gdcj.voluntariadoiiap.ui.viewmodel.AuthViewModel
 
 @Composable
@@ -39,29 +34,11 @@ fun UserHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // Avatar Dinámico
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (profilePictureUri != null) {
-                    AsyncImage(
-                        model = profilePictureUri,
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            // Avatar Dinámico usando el componente reutilizable
+            ProfileAvatar(
+                uri = profilePictureUri,
+                size = 48.dp
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 

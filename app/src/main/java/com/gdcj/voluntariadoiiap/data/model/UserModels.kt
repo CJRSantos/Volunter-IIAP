@@ -16,6 +16,8 @@ data class User(
     val gender: String? = null,
     val location: String? = null,
     val bio: String? = null,
+    @SerializedName("volunteer_type")
+    val volunteerType: String? = null,
     @SerializedName("created_at")
     val createdAt: String? = null,
     @SerializedName("updated_at")
