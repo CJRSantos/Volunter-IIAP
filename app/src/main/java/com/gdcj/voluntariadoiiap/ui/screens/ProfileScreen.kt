@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -68,8 +69,8 @@ fun ProfileScreen(
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
     
     val userDetailState by userViewModel.userDetailState.collectAsState()
-    val userStudies by userViewModel.userStudies.collectAsState()
-    val userExperiences by userViewModel.userExperiences.collectAsState()
+    val userStudies by studyViewModel.studies.collectAsState()
+    val userExperiences by experienceViewModel.experiences.collectAsState()
     
     val userOpState by userViewModel.operationState.collectAsState()
     val studyOpState by studyViewModel.operationState.collectAsState()
@@ -103,8 +104,8 @@ fun ProfileScreen(
     LaunchedEffect(userUid) {
         if (userUid.isNotEmpty()) {
             userViewModel.fetchUserById(userUid)
-            userViewModel.fetchUserStudies(userUid)
-            userViewModel.fetchUserExperiences(userUid)
+            studyViewModel.fetchUserStudies(userUid)
+            experienceViewModel.fetchUserExperiences(userUid)
         }
     }
 
@@ -120,8 +121,8 @@ fun ProfileScreen(
     }
 
     LaunchedEffect(userOpState) { handleState(userOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserById(userUid) }, userViewModel::resetOperationState) }
-    LaunchedEffect(studyOpState) { handleState(studyOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserStudies(userUid) }, studyViewModel::resetOperationState) }
-    LaunchedEffect(expOpState) { handleState(expOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserExperiences(userUid) }, experienceViewModel::resetOperationState) }
+    LaunchedEffect(studyOpState) { handleState(studyOpState, { if(userUid.isNotEmpty()) studyViewModel.fetchUserStudies(userUid) }, studyViewModel::resetOperationState) }
+    LaunchedEffect(expOpState) { handleState(expOpState, { if(userUid.isNotEmpty()) experienceViewModel.fetchUserExperiences(userUid) }, experienceViewModel::resetOperationState) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -129,7 +130,6 @@ fun ProfileScreen(
             ProfileHeader(
                 user?.name ?: name, 
                 user?.email ?: email, 
-                user?.volunteerType ?: "Asignar Categoría",
                 user?.location ?: "Sin ubicación",
                 profilePictureUri, 
                 onBackClick
@@ -150,8 +150,8 @@ fun ProfileScreen(
             Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                 when (selectedTab) {
                     0 -> InfoPersonalContent(userDetailState, name, email) { showSheetType = SheetType.PERSONAL }
-                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it) } }
-                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it) } }
+                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it, userUid) } }
+                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it, userUid) } }
                 }
             }
             
@@ -205,11 +205,15 @@ fun ProfileScreen(
                         showSheetType = null
                     }
                     SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
-                        studyViewModel.createStudy(study.copy(user_id = userUid.hashCode())) 
+                        if (userUid.isNotEmpty()) {
+                            studyViewModel.createStudy(userUid, study)
+                        }
                         showSheetType = null
                     }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
-                        experienceViewModel.createExperience(exp.copy(user_id = userUid.hashCode()))
+                        if (userUid.isNotEmpty()) {
+                            experienceViewModel.createExperience(userUid, exp)
+                        }
                         showSheetType = null
                     }
                     null -> {}
@@ -220,7 +224,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileHeader(name: String, email: String, category: String, location: String, profilePictureUri: Uri?, onBackClick: () -> Unit, onPhotoClick: () -> Unit) {
+private fun ProfileHeader(name: String, email: String, location: String, profilePictureUri: Uri?, onBackClick: () -> Unit, onPhotoClick: () -> Unit) {
     val greenGradient = Brush.verticalGradient(colors = listOf(Color(0xFF2E7D32), Color(0xFF43A047)))
     Box(
         modifier = Modifier
@@ -279,7 +283,7 @@ private fun ProfileHeader(name: String, email: String, category: String, locatio
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocationOn, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(text = "$category • $location", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+                Text(text = location, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
             }
         }
     }
@@ -399,7 +403,6 @@ fun EmptyState(message: String) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: String, onDismiss: () -> Unit, onSave: (User) -> Unit) {
     val currentUser = (state as? UserDetailState.Success)?.user
@@ -408,10 +411,6 @@ fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: Stri
     var phone by remember { mutableStateOf(currentUser?.phone ?: "") }
     var location by remember { mutableStateOf(currentUser?.location ?: "") }
     var bio by remember { mutableStateOf(currentUser?.bio ?: "") }
-    var volunteerType by remember { mutableStateOf(currentUser?.volunteerType ?: "Voluntario Senior") }
-
-    val volunteerOptions = listOf("Voluntario Junior", "Voluntario Senior", "Especialista", "Investigador")
-    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
         Text("Editar Perfil", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Color(0xFF1B5E20))
@@ -419,35 +418,21 @@ fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: Stri
         
         CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
         CustomTextField(value = email, onValueChange = { email = it }, label = "Correo Electrónico", icon = Icons.Default.Email)
-        CustomTextField(value = phone, onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, label = "Teléfono", icon = Icons.Default.Phone, keyboardType = KeyboardType.Number)
+        
+        CustomTextField(
+            value = phone, 
+            onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, 
+            label = "Teléfono", 
+            icon = Icons.Default.Phone, 
+            keyboardType = KeyboardType.Number
+        )
+        
         CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-            OutlinedTextField(
-                value = volunteerType,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Categoría de Voluntario") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                leadingIcon = { Icon(Icons.Default.WorkspacePremium, null, tint = Color(0xFF2E7D32)) }
-            )
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                volunteerOptions.forEach { option ->
-                    DropdownMenuItem(text = { Text(option) }, onClick = { volunteerType = option; expanded = false })
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
         CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.AutoMirrored.Filled.Notes, isMultiline = true)
         
         Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio, volunteerType = volunteerType)) }, 
+            onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio)) }, 
             modifier = Modifier.fillMaxWidth().height(56.dp), 
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
@@ -472,7 +457,7 @@ fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
         CustomTextField(value = fieldOfStudy, onValueChange = { fieldOfStudy = it }, label = "Campo de estudio", icon = Icons.AutoMirrored.Filled.Subject)
         CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }
@@ -492,7 +477,7 @@ fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
         CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         CustomTextField(value = description, onValueChange = { description = it }, label = "Descripción", icon = Icons.AutoMirrored.Filled.Subject, isMultiline = true)
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }
