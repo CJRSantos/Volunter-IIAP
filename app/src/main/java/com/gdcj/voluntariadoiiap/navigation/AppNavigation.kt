@@ -132,9 +132,14 @@ fun AppNavigation(
                     ) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
-                        HomeScreen(name = n, email = e, themeViewModel = themeViewModel, authViewModel = authViewModel,
+                        HomeScreen(
+                            name = n, 
+                            email = e, 
+                            themeViewModel = themeViewModel, 
+                            authViewModel = authViewModel,
                             onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } },
                             onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
+                            onNavigateToAreas = { navController.navigate(AppScreens.AreasScreen.createRoute(n, e)) },
                             onProfileClick = { showProfileOverlay = true }
                         )
                     }
