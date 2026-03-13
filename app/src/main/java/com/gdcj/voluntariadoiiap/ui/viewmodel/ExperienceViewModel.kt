@@ -3,10 +3,11 @@ package com.gdcj.voluntariadoiiap.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.model.Experience
-import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 sealed class ExperienceListState {
     object Idle : ExperienceListState()
@@ -15,102 +16,58 @@ sealed class ExperienceListState {
     data class Error(val message: String) : ExperienceListState()
 }
 
-sealed class ExperienceDetailState {
-    object Idle : ExperienceDetailState()
-    object Loading : ExperienceDetailState()
-    data class Success(val experience: Experience) : ExperienceDetailState()
-    data class Error(val message: String) : ExperienceDetailState()
-}
-
 class ExperienceViewModel : ViewModel() {
-    private val _experienceListState = MutableStateFlow<ExperienceListState>(ExperienceListState.Idle)
-    val experienceListState = _experienceListState.asStateFlow()
-
-    private val _experienceDetailState = MutableStateFlow<ExperienceDetailState>(ExperienceDetailState.Idle)
-    val experienceDetailState = _experienceDetailState.asStateFlow()
+    private val db = FirebaseFirestore.getInstance()
+    
+    private val _experiences = MutableStateFlow<List<Experience>>(emptyList())
+    val experiences = _experiences.asStateFlow()
 
     private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
     val operationState = _operationState.asStateFlow()
 
-    fun fetchExperiences() {
+    fun fetchUserExperiences(userUid: String) {
         viewModelScope.launch {
-            _experienceListState.value = ExperienceListState.Loading
             try {
-                val response = RetrofitClient.experienceService.getExperiences()
-                if (response.isSuccessful) {
-                    _experienceListState.value = ExperienceListState.Success(response.body() ?: emptyList())
-                } else {
-                    _experienceListState.value = ExperienceListState.Error("Error: ${response.code()}")
+                val snapshot = db.collection("experiencias")
+                    .whereEqualTo("userUid", userUid)
+                    .get().await()
+                val list = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Experience::class.java)?.copy(id = doc.id)
                 }
-            } catch (e: Exception) {
-                _experienceListState.value = ExperienceListState.Error(e.message ?: "Error desconocido")
-            }
+                _experiences.value = list
+            } catch (e: Exception) { }
         }
     }
 
-    fun fetchExperienceById(id: Int) {
-        viewModelScope.launch {
-            _experienceDetailState.value = ExperienceDetailState.Loading
-            try {
-                val response = RetrofitClient.experienceService.getExperienceById(id)
-                if (response.isSuccessful && response.body() != null) {
-                    _experienceDetailState.value = ExperienceDetailState.Success(response.body()!!)
-                } else {
-                    _experienceDetailState.value = ExperienceDetailState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _experienceDetailState.value = ExperienceDetailState.Error(e.message ?: "Error desconocido")
-            }
-        }
-    }
-
-    fun createExperience(experience: Experience) {
+    fun createExperience(userUid: String, experience: Experience) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val response = RetrofitClient.experienceService.createExperience(experience)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Experiencia creada correctamente")
-                    fetchExperiences()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
+                val expData = hashMapOf(
+                    "userUid" to userUid,
+                    "position" to experience.position,
+                    "company" to experience.company,
+                    "startDate" to experience.startDate,
+                    "description" to experience.description
+                )
+                db.collection("experiencias").add(expData).await()
+                _operationState.value = OperationState.Success("Experiencia agregada")
+                fetchUserExperiences(userUid)
             } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
+                _operationState.value = OperationState.Error(e.message ?: "Error al guardar")
             }
         }
     }
 
-    fun updateExperience(id: Int, experience: Experience) {
+    fun deleteExperience(experienceId: String, userUid: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val response = RetrofitClient.experienceService.updateExperience(id, experience)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Experiencia actualizada correctamente")
-                    fetchExperiences()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
+                db.collection("experiencias").document(experienceId).delete().await()
+                _operationState.value = OperationState.Success("Experiencia eliminada")
+                fetchUserExperiences(userUid)
             } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
-            }
-        }
-    }
-
-    fun deleteExperience(id: Int) {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Loading
-            try {
-                val response = RetrofitClient.experienceService.deleteExperience(id)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Experiencia eliminada correctamente")
-                    fetchExperiences()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
+                _operationState.value = OperationState.Error(e.message ?: "Error al eliminar")
             }
         }
     }
