@@ -242,9 +242,7 @@ private fun ProfileHeader(name: String, email: String, location: String, profile
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color.White, modifier = Modifier.padding(8.dp))
                 }
                 Text("Perfil de Voluntario", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Surface(onClick = { /* Settings */ }, shape = CircleShape, color = Color.White.copy(alpha = 0.2f)) {
-                    Icon(Icons.Default.Settings, "Ajustes", tint = Color.White, modifier = Modifier.padding(8.dp))
-                }
+                Spacer(modifier = Modifier.width(48.dp)) // Espacio vacío para balancear el título
             }
 
             Spacer(modifier = Modifier.height(20.dp))
