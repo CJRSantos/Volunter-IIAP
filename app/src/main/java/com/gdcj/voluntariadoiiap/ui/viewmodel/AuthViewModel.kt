@@ -4,8 +4,10 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
+import com.gdcj.voluntariadoiiap.data.model.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -20,6 +22,7 @@ sealed class AuthState {
 
 class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
@@ -90,10 +93,15 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
                 val user = result.user
                 
                 if (user != null) {
+                    // Actualizar perfil de Auth
                     val profileUpdates = UserProfileChangeRequest.Builder()
                         .setDisplayName(name)
                         .build()
                     user.updateProfile(profileUpdates).await()
+                    
+                    // Crear documento en Firestore para el usuario
+                    val newUser = User(name = name, email = email, phone = phone)
+                    db.collection("users").document(user.uid).set(newUser).await()
                     
                     login(email, pass, onSuccess)
                 }
