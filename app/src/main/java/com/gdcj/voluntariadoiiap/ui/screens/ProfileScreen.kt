@@ -9,27 +9,34 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.Subject
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,8 +45,12 @@ import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
 import com.canhub.cropper.CropImageOptions
 import com.canhub.cropper.CropImageView
+import com.gdcj.voluntariadoiiap.data.model.Experience
+import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
+
+enum class SheetType { PERSONAL, STUDY, EXPERIENCE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,11 +66,20 @@ fun ProfileScreen(
     val context = LocalContext.current
     val userUid by authViewModel.userUid.collectAsState()
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
+    
     val userDetailState by userViewModel.userDetailState.collectAsState()
-    val user = (userDetailState as? UserDetailState.Success)?.user
+    val userStudies by userViewModel.userStudies.collectAsState()
+    val userExperiences by userViewModel.userExperiences.collectAsState()
+    
+    val userOpState by userViewModel.operationState.collectAsState()
+    val studyOpState by studyViewModel.operationState.collectAsState()
+    val expOpState by experienceViewModel.operationState.collectAsState()
 
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Perfil", "Formación", "Experiencia")
+    
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showPersonalSheet by remember { mutableStateOf(false) }
+    var showSheetType by remember { mutableStateOf<SheetType?>(null) }
     var showPhotoOptionsDialog by remember { mutableStateOf(false) }
 
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
@@ -83,134 +103,67 @@ fun ProfileScreen(
     LaunchedEffect(userUid) {
         if (userUid.isNotEmpty()) {
             userViewModel.fetchUserById(userUid)
+            userViewModel.fetchUserStudies(userUid)
+            userViewModel.fetchUserExperiences(userUid)
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA))) {
-        // Banner Versión Beta
-        BetaBanner()
+    fun handleState(state: OperationState, onRefresh: () -> Unit, onReset: () -> Unit) {
+        if (state is OperationState.Success) {
+            Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+            onRefresh()
+            onReset()
+        } else if (state is OperationState.Error) {
+            Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
+            onReset()
+        }
+    }
 
-        // Header con "Mi Perfil" y Settings
-        ProfileTopBar(onBackClick)
+    LaunchedEffect(userOpState) { handleState(userOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserById(userUid) }, userViewModel::resetOperationState) }
+    LaunchedEffect(studyOpState) { handleState(studyOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserStudies(userUid) }, studyViewModel::resetOperationState) }
+    LaunchedEffect(expOpState) { handleState(expOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserExperiences(userUid) }, experienceViewModel::resetOperationState) }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Imagen de Perfil con Badge
-                ProfileImageSection(profilePictureUri) { showPhotoOptionsDialog = true }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Nombre
-                Text(
-                    text = if (user?.name?.isNotEmpty() == true) user.name else if (name.isEmpty()) "Usuario IIAP" else name,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1C1E)
-                )
-                
-                // Rango / Tipo de Voluntariado (Dinámico)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.WorkspacePremium, 
-                        contentDescription = null, 
-                        tint = Color(0xFFF07D44), 
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = user?.volunteerType ?: "Asignar Tipo",
-                        fontSize = 20.sp,
-                        color = Color(0xFFF07D44),
-                        fontWeight = FontWeight.Medium
-                    )
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val user = (userDetailState as? UserDetailState.Success)?.user
+            ProfileHeader(
+                user?.name ?: name, 
+                user?.email ?: email, 
+                user?.volunteerType ?: "Asignar Categoría",
+                user?.location ?: "Sin ubicación",
+                profilePictureUri, 
+                onBackClick
+            ) { showPhotoOptionsDialog = true }
+            
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Color(0xFF2E7D32),
+                indicator = { tabPositions -> TabRowDefaults.SecondaryIndicator(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]), color = Color(0xFF2E7D32), height = 3.dp) },
+                divider = {}
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(text = title, fontSize = 14.sp, fontWeight = if(selectedTab == index) FontWeight.Bold else FontWeight.Medium) })
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Etiqueta Entorno de Pruebas
-                Surface(
-                    color = Color(0xFFE9F0F7),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = "ENTORNO DE PRUEBAS",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4A6572)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Botón Editar Perfil
-                Button(
-                    onClick = { showPersonalSheet = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                        .height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF07D44)),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Editar Perfil", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // Sección Próximamente
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Próximamente",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1C1E)
-                    )
-                    Surface(
-                        color = Color(0xFFFFEAD1),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(
-                            text = "ROADMAP",
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8B4513)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Lista de items de Próximamente
-            items(upcomingFeatures) { feature ->
-                UpcomingFeatureItem(feature)
+            Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                when (selectedTab) {
+                    0 -> InfoPersonalContent(userDetailState, name, email) { showSheetType = SheetType.PERSONAL }
+                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it) } }
+                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it) } }
+                }
             }
-
-            item {
-                Spacer(modifier = Modifier.height(40.dp))
-                Text(
-                    text = "Estamos trabajando para integrar estas funcionalidades.\nTu perfil se actualizará automáticamente cuando estén disponibles.",
-                    modifier = Modifier.padding(horizontal = 48.dp),
-                    textAlign = TextAlign.Center,
-                    fontSize = 14.sp,
-                    color = Color.Gray.copy(alpha = 0.8f),
-                    lineHeight = 20.sp,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
+            
+            Button(
+                onClick = { showSheetType = SheetType.PERSONAL },
+                modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+            ) {
+                Icon(Icons.Default.Edit, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Editar mi Perfil", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -236,216 +189,217 @@ fun ProfileScreen(
         )
     }
 
-    if (showPersonalSheet) {
-        ModalBottomSheet(onDismissRequest = { showPersonalSheet = false }, sheetState = sheetState) {
-            PersonalForm(userDetailState, name, email, onDismiss = { showPersonalSheet = false }) { updatedUser ->
-                if (userUid.isNotEmpty()) {
-                    userViewModel.updateUserInFirebase(userUid, updatedUser)
-                    authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
+    if (showSheetType != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showSheetType = null }, 
+            sheetState = sheetState, 
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Box(modifier = Modifier.fillMaxHeight(0.9f).navigationBarsPadding()) {
+                when (showSheetType) {
+                    SheetType.PERSONAL -> PersonalForm(userDetailState, name, email, onDismiss = { showSheetType = null }) { updatedUser ->
+                        if (userUid.isNotEmpty()) {
+                            userViewModel.updateUserInFirebase(userUid, updatedUser)
+                            authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
+                        }
+                        showSheetType = null
+                    }
+                    SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
+                        studyViewModel.createStudy(study.copy(user_id = userUid.hashCode())) 
+                        showSheetType = null
+                    }
+                    SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
+                        experienceViewModel.createExperience(exp.copy(user_id = userUid.hashCode()))
+                        showSheetType = null
+                    }
+                    null -> {}
                 }
-                showPersonalSheet = false
             }
         }
     }
 }
 
 @Composable
-fun BetaBanner() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFDE8D7))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            Icons.Default.Info, 
-            contentDescription = null, 
-            tint = Color(0xFFD47321), 
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = "VERSIÓN BETA",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFD47321)
-            )
-            Text(
-                text = "Este es un entorno de pruebas. Los datos mostrados no están sincronizados con el servidor real.",
-                fontSize = 12.sp,
-                color = Color(0xFF6B4B3A),
-                lineHeight = 15.sp
-            )
-        }
-    }
-}
-
-@Composable
-fun ProfileTopBar(onBackClick: () -> Unit) {
+private fun ProfileHeader(name: String, email: String, category: String, location: String, profilePictureUri: Uri?, onBackClick: () -> Unit, onPhotoClick: () -> Unit) {
+    val greenGradient = Brush.verticalGradient(colors = listOf(Color(0xFF2E7D32), Color(0xFF43A047)))
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .background(brush = greenGradient)
+            .padding(bottom = 60.dp)
     ) {
-        Text(
-            text = "Mi Perfil",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1A1C1E)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(44.dp),
-                shape = CircleShape,
-                color = Color(0xFFE9EEF1)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(
+                modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* Settings */ }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color(0xFF43474E), modifier = Modifier.size(24.dp))
+                Surface(onClick = onBackClick, shape = CircleShape, color = Color.White.copy(alpha = 0.2f)) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color.White, modifier = Modifier.padding(8.dp))
+                }
+                Text("Perfil de Voluntario", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Surface(onClick = { /* Settings */ }, shape = CircleShape, color = Color.White.copy(alpha = 0.2f)) {
+                    Icon(Icons.Default.Settings, "Ajustes", tint = Color.White, modifier = Modifier.padding(8.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-        }
-    }
-}
 
-@Composable
-fun ProfileImageSection(uri: Uri?, onClick: () -> Unit) {
-    Box(contentAlignment = Alignment.Center) {
-        // Círculo decorativo naranja
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .background(Color(0xFFF07D44).copy(alpha = 0.15f), CircleShape)
-        )
+            Spacer(modifier = Modifier.height(20.dp))
 
-        // Foto de Perfil
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clickable { onClick() },
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                shape = CircleShape,
-                border = BorderStroke(4.dp, Color(0xFFF07D44)),
-                color = Color.White
-            ) {
-                if (uri != null) {
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Foto de perfil",
-                        modifier = Modifier.fillMaxSize().clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person, 
-                        contentDescription = null, 
-                        modifier = Modifier.padding(24.dp), 
-                        tint = Color.LightGray
-                    )
+            Box(contentAlignment = Alignment.BottomEnd, modifier = Modifier.size(120.dp).clickable { onPhotoClick() }) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.3f),
+                    border = BorderStroke(4.dp, Color.White)
+                ) {
+                    if (profilePictureUri != null) {
+                        AsyncImage(model = profilePictureUri, contentDescription = null, modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
+                    } else {
+                        Icon(Icons.Default.Person, null, modifier = Modifier.padding(30.dp), tint = Color.White)
+                    }
                 }
-            }
-            
-            // Verification Badge (checkmark icon inside an orange circle)
-            Surface(
-                modifier = Modifier.size(34.dp).offset(x = (-4).dp, y = (-4).dp),
-                shape = CircleShape,
-                color = Color(0xFFF07D44),
-                border = BorderStroke(2.dp, Color.White)
-            ) {
-                Icon(
-                    Icons.Default.Verified, 
-                    contentDescription = "Verificado", 
-                    modifier = Modifier.padding(6.dp), 
-                    tint = Color.White
-                )
+                Surface(modifier = Modifier.size(32.dp).offset(x = (-4).dp, y = (-4).dp), shape = CircleShape, color = Color(0xFF8BC34A), border = BorderStroke(2.dp, Color.White)) {
+                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.padding(6.dp), tint = Color.White)
+                }
             }
         }
     }
-}
 
-data class UpcomingFeature(
-    val title: String,
-    val description: String,
-    val icon: ImageVector,
-    val color: Color
-)
-
-val upcomingFeatures = listOf(
-    UpcomingFeature(
-        "Seguimiento de Impacto",
-        "Visualiza tu contribución en tiempo real con métricas avanzadas.",
-        Icons.Default.BarChart,
-        Color(0xFF4285F4)
-    ),
-    UpcomingFeature(
-        "Historial Certificado",
-        "Descarga certificados oficiales de tus horas de voluntariado.",
-        Icons.Default.CardMembership,
-        Color(0xFF34A853)
-    ),
-    UpcomingFeature(
-        "Mapa de Iniciativas",
-        "Explora proyectos activos en la Amazonía a través de un mapa interactivo.",
-        Icons.Default.Map,
-        Color(0xFFFBBC05)
-    )
-)
-
-@Composable
-fun UpcomingFeatureItem(feature: UpcomingFeature) {
+    // Floating Info Card
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).offset(y = (-40).dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = feature.color.copy(alpha = 0.1f)
-            ) {
-                Icon(
-                    feature.icon, 
-                    contentDescription = null, 
-                    modifier = Modifier.padding(12.dp), 
-                    tint = feature.color
-                )
+        Column(modifier = Modifier.padding(24.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = name, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20), textAlign = TextAlign.Center)
+            Text(text = email, fontSize = 14.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.LocationOn, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(text = "$category • $location", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoPersonalContent(state: UserDetailState, defaultName: String, defaultEmail: String, onEditClick: () -> Unit) {
+    val user = (state as? UserDetailState.Success)?.user
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Person, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Sobre mí", color = Color(0xFF1B5E20), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = user?.bio ?: "Completa tu biografía para que otros te conozcan mejor.",
+            fontSize = 15.sp,
+            color = Color.DarkGray,
+            lineHeight = 22.sp
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        ProfileDataItem(Icons.Default.Badge, "NOMBRE COMPLETO", user?.name ?: defaultName)
+        ProfileDataItem(Icons.Default.Email, "CORREO ELECTRÓNICO", user?.email ?: defaultEmail)
+        ProfileDataItem(Icons.Default.Phone, "TELÉFONO", user?.phone ?: "No especificado")
+        ProfileDataItem(Icons.Default.LocationOn, "UBICACIÓN", user?.location ?: "No especificado")
+        
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun ProfileDataItem(icon: ImageVector, label: String, value: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9).copy(alpha = 0.5f))
+    ) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(12.dp), color = Color.White) {
+                Icon(icon, null, modifier = Modifier.padding(10.dp), tint = Color(0xFF2E7D32))
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(
-                    text = feature.title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1C1E)
-                )
-                Text(
-                    text = feature.description,
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                    lineHeight = 18.sp
-                )
+                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF212121))
             }
         }
     }
 }
 
+@Composable
+fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onDeleteClick: (Study) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Formación Académica", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            FloatingActionButton(onClick = onAddClick, containerColor = Color(0xFF2E7D32), contentColor = Color.White, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Add, null) }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        if (studies.isEmpty()) EmptyState("No has agregado estudios aún")
+        else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                studies.forEach { study ->
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.School, null, tint = Color(0xFF2E7D32))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(study.degree, fontWeight = FontWeight.Bold)
+                                Text("${study.institution} • ${study.startDate}", fontSize = 12.sp)
+                            }
+                            IconButton(onClick = { onDeleteClick(study) }) { Icon(Icons.Default.Delete, null, tint = Color.Red) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onDeleteClick: (Experience) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Experiencia", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            FloatingActionButton(onClick = onAddClick, containerColor = Color(0xFF2E7D32), contentColor = Color.White, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Add, null) }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        if (experiences.isEmpty()) EmptyState("No has agregado experiencias aún")
+        else {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                experiences.forEach { exp ->
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Work, null, tint = Color(0xFF2E7D32))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(exp.position, fontWeight = FontWeight.Bold)
+                                Text("${exp.company} • ${exp.startDate}", fontSize = 12.sp)
+                            }
+                            IconButton(onClick = { onDeleteClick(exp) }) { Icon(Icons.Default.Delete, null, tint = Color.Red) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyState(message: String) {
+    Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+        Text(message, color = Color.Gray, textAlign = TextAlign.Center)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: String, onDismiss: () -> Unit, onSave: (User) -> Unit) {
     val currentUser = (state as? UserDetailState.Success)?.user
@@ -456,77 +410,118 @@ fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: Stri
     var bio by remember { mutableStateOf(currentUser?.bio ?: "") }
     var volunteerType by remember { mutableStateOf(currentUser?.volunteerType ?: "Voluntario Senior") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Editar Información", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        Spacer(modifier = Modifier.height(20.dp))
+    val volunteerOptions = listOf("Voluntario Junior", "Voluntario Senior", "Especialista", "Investigador")
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
+        Text("Editar Perfil", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Color(0xFF1B5E20))
+        Spacer(modifier = Modifier.height(24.dp))
+        
         CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
         CustomTextField(value = email, onValueChange = { email = it }, label = "Correo Electrónico", icon = Icons.Default.Email)
-        CustomTextField(value = phone, onValueChange = { phone = it }, label = "Teléfono", icon = Icons.Default.Phone)
+        CustomTextField(value = phone, onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, label = "Teléfono", icon = Icons.Default.Phone, keyboardType = KeyboardType.Number)
         CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
         
-        // Selector de Tipo de Voluntariado
-        Text("Categoría de Voluntario", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        val volunteerOptions = listOf("Voluntario Junior", "Voluntario Senior", "Especialista", "Investigador")
-        var expanded by remember { mutableStateOf(false) }
+        Spacer(modifier = Modifier.height(8.dp))
         
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth()
-        ) {
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
             OutlinedTextField(
                 value = volunteerType,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Tipo de Voluntariado") },
+                label = { Text("Categoría de Voluntario") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                 modifier = Modifier.menuAnchor().fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                leadingIcon = { Icon(Icons.Default.WorkspacePremium, null, tint = MaterialTheme.colorScheme.primary) }
+                leadingIcon = { Icon(Icons.Default.WorkspacePremium, null, tint = Color(0xFF2E7D32)) }
             )
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 volunteerOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            volunteerType = option
-                            expanded = false
-                        }
-                    )
+                    DropdownMenuItem(text = { Text(option) }, onClick = { volunteerType = option; expanded = false })
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-        CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.Default.Description, isMultiline = true)
+        Spacer(modifier = Modifier.height(8.dp))
+        CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.AutoMirrored.Filled.Notes, isMultiline = true)
         
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio, volunteerType = volunteerType)) }, 
-            modifier = Modifier.fillMaxWidth(), 
-            shape = RoundedCornerShape(12.dp)
-        ) { 
-            Text("Guardar Cambios") 
-        }
+            modifier = Modifier.fillMaxWidth().height(56.dp), 
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
+        ) { Text("Guardar Cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar", color = Color.Gray) }
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
+    var degree by remember { mutableStateOf("") }
+    var institution by remember { mutableStateOf("") }
+    var fieldOfStudy by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Text("Agregar Estudio", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomTextField(value = degree, onValueChange = { degree = it }, label = "Título/Carrera", icon = Icons.Default.School)
+        CustomTextField(value = institution, onValueChange = { institution = it }, label = "Institución", icon = Icons.Default.Business)
+        CustomTextField(value = fieldOfStudy, onValueChange = { fieldOfStudy = it }, label = "Campo de estudio", icon = Icons.AutoMirrored.Filled.Subject)
+        CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
+        Spacer(modifier = Modifier.height(30.dp))
+        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }
 
 @Composable
-fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector, isMultiline: Boolean = false) {
+fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
+    var position by remember { mutableStateOf("") }
+    var company by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
+        Text("Agregar Experiencia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        CustomTextField(value = position, onValueChange = { position = it }, label = "Cargo", icon = Icons.Default.Work)
+        CustomTextField(value = company, onValueChange = { company = it }, label = "Empresa/Organización", icon = Icons.Default.Business)
+        CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
+        CustomTextField(value = description, onValueChange = { description = it }, label = "Descripción", icon = Icons.AutoMirrored.Filled.Subject, isMultiline = true)
+        Spacer(modifier = Modifier.height(30.dp))
+        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description, user_id = 0)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
+    }
+}
+
+@Composable
+fun CustomTextField(
+    value: String, 
+    onValueChange: (String) -> Unit, 
+    label: String, 
+    icon: ImageVector, 
+    isMultiline: Boolean = false,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        leadingIcon = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+        leadingIcon = { Icon(icon, null, tint = Color(0xFF2E7D32)) },
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
         singleLine = !isMultiline,
         minLines = if (isMultiline) 3 else 1,
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+        keyboardOptions = KeyboardOptions(
+            keyboardType = keyboardType,
+            imeAction = ImeAction.Next
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color(0xFF2E7D32),
+            focusedLabelColor = Color(0xFF2E7D32)
+        )
     )
 }
