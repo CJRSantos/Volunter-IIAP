@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
@@ -32,7 +33,8 @@ import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 fun ConvocatoriasScreen(
     projectViewModel: ProjectViewModel,
     authViewModel: AuthViewModel,
-    applicationViewModel: ApplicationViewModel = viewModel()
+    applicationViewModel: ApplicationViewModel = viewModel(),
+    onBackClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val projectState by projectViewModel.projectListState.collectAsState()
@@ -67,12 +69,9 @@ fun ConvocatoriasScreen(
             onDismiss = { showApplyDialog = false },
             onConfirm = { motivation ->
                 val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
-                // Nota: El user_id debería venir del perfil del usuario logueado. 
-                // Por ahora usamos un ID genérico o deberíamos obtenerlo del AuthViewModel si estuviera disponible.
-                // Idealmente la API debería identificar al usuario por el Token.
                 applicationViewModel.applyToProject(
                     token = token,
-                    userId = 1, // <--- TODO: Obtener el ID real del usuario logueado
+                    userId = 1, 
                     projectId = selectedProject?.id ?: 0,
                     motivation = motivation
                 )
@@ -81,107 +80,120 @@ fun ConvocatoriasScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Cabecera con Búsqueda
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = "Convocatorias",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Encuentra tu oportunidad ideal",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar por título...", color = Color.LightGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        focusedBorderColor = Color.White,
-                        cursorColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedTextColor = Color.White
-                    ),
-                    singleLine = true
-                )
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val state = projectState) {
-                is ProjectListState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is ProjectListState.Success -> {
-                    val filteredProjects = state.projects.filter {
-                        it.name?.contains(searchQuery, ignoreCase = true) == true ||
-                                it.description?.contains(searchQuery, ignoreCase = true) == true
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Convocatorias", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Cabecera con Búsqueda
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+            ) {
+                Column(modifier = Modifier.padding(bottom = 24.dp, start = 24.dp, end = 24.dp)) {
+                    Text(
+                        text = "Encuentra tu oportunidad ideal",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar por título...", color = Color.LightGray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            focusedBorderColor = Color.White,
+                            cursorColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Color.White
+                        ),
+                        singleLine = true
+                    )
+                }
+            }
 
-                    if (filteredProjects.isEmpty()) {
-                        Text(
-                            text = "No hay convocatorias disponibles",
-                            modifier = Modifier.align(Alignment.Center),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(filteredProjects, key = { it.id ?: 0 }) { project ->
-                                Column {
-                                    AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn(animationSpec = tween(500)) + expandVertically()
-                                    ) {
-                                        ConvocatoriaCard(
-                                            project = project,
-                                            onApplyClick = {
-                                                selectedProject = project
-                                                showApplyDialog = true
-                                            }
-                                        )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = projectState) {
+                    is ProjectListState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    is ProjectListState.Success -> {
+                        val filteredProjects = state.projects.filter {
+                            it.name?.contains(searchQuery, ignoreCase = true) == true ||
+                                    it.description?.contains(searchQuery, ignoreCase = true) == true
+                        }
+
+                        if (filteredProjects.isEmpty()) {
+                            Text(
+                                text = "No hay convocatorias disponibles",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(filteredProjects, key = { it.id ?: 0 }) { project ->
+                                    Column {
+                                        AnimatedVisibility(
+                                            visible = true,
+                                            enter = fadeIn(animationSpec = tween(500)) + expandVertically()
+                                        ) {
+                                            ConvocatoriaCard(
+                                                project = project,
+                                                onApplyClick = {
+                                                    selectedProject = project
+                                                    showApplyDialog = true
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-                is ProjectListState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.message,
-                            color = Color.Red,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        Button(onClick = { projectViewModel.fetchProjects() }) {
-                            Text("Reintentar")
+                    is ProjectListState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = state.message,
+                                color = Color.Red,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                            Button(onClick = { projectViewModel.fetchProjects() }) {
+                                Text("Reintentar")
+                            }
                         }
                     }
+                    else -> {}
                 }
-                else -> {}
             }
         }
     }
@@ -195,7 +207,10 @@ fun ConvocatoriaCard(project: Project, onApplyClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -250,14 +265,14 @@ fun ConvocatoriaCard(project: Project, onApplyClick: () -> Unit) {
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sede IIAP", fontSize = 12.sp, color = Color.Gray)
+                    Text("Sede IIAP", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Gray)
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Cierra: ${project.endDate}", fontSize = 12.sp, color = Color.Gray)
+                    Text("Cierra: ${project.endDate}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 

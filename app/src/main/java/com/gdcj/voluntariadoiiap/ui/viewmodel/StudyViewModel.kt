@@ -9,13 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-sealed class StudyListState {
-    object Idle : StudyListState()
-    object Loading : StudyListState()
-    data class Success(val studies: List<Study>) : StudyListState()
-    data class Error(val message: String) : StudyListState()
-}
-
 class StudyViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     
@@ -55,6 +48,26 @@ class StudyViewModel : ViewModel() {
                 fetchUserStudies(userUid)
             } catch (e: Exception) {
                 _operationState.value = OperationState.Error(e.message ?: "Error al guardar")
+            }
+        }
+    }
+
+    fun updateStudy(userUid: String, studyId: String, study: Study) {
+        viewModelScope.launch {
+            _operationState.value = OperationState.Loading
+            try {
+                val studyData = hashMapOf(
+                    "userUid" to userUid,
+                    "degree" to study.degree,
+                    "institution" to study.institution,
+                    "fieldOfStudy" to study.fieldOfStudy,
+                    "startDate" to study.startDate
+                )
+                db.collection("estudios").document(studyId).set(studyData).await()
+                _operationState.value = OperationState.Success("Estudio actualizado")
+                fetchUserStudies(userUid)
+            } catch (e: Exception) {
+                _operationState.value = OperationState.Error(e.message ?: "Error al actualizar")
             }
         }
     }

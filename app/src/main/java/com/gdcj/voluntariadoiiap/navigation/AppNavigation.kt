@@ -58,7 +58,6 @@ fun AppNavigation(
 
     val name by authViewModel.userName.collectAsState()
     val email by authViewModel.userEmail.collectAsState()
-    val token = authViewModel.sessionManager.fetchAuthToken() ?: ""
 
     val startDestination = remember {
         if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
@@ -147,11 +146,20 @@ fun AppNavigation(
                     composable(route = AppScreens.AreasScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->
                         val n = backStackEntry.arguments?.getString("name") ?: ""
                         val e = backStackEntry.arguments?.getString("email") ?: ""
-                        AreasScreen(areaViewModel = areaViewModel, name = n, email = e)
+                        AreasScreen(
+                            areaViewModel = areaViewModel, 
+                            name = n, 
+                            email = e,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
 
                     composable(route = AppScreens.ConvocatoriasScreen.route) {
-                        ConvocatoriasScreen(projectViewModel = projectViewModel, authViewModel = authViewModel)
+                        ConvocatoriasScreen(
+                            projectViewModel = projectViewModel, 
+                            authViewModel = authViewModel,
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
 
                     composable(route = AppScreens.NosotrosScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->

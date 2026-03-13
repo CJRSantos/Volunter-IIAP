@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -26,7 +27,8 @@ import com.gdcj.voluntariadoiiap.ui.viewmodel.AreaViewModel
 fun AreasScreen(
     areaViewModel: AreaViewModel,
     name: String,
-    email: String
+    email: String,
+    onBackClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val areaState by areaViewModel.areaListState.collectAsState()
@@ -35,94 +37,107 @@ fun AreasScreen(
         areaViewModel.fetchAreas()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Cabecera con Búsqueda (Estilo Convocatorias)
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = "Áreas",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Explora nuestras unidades de investigación",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar área...", color = Color.LightGray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        focusedBorderColor = Color.White,
-                        cursorColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedTextColor = Color.White
-                    ),
-                    singleLine = true
-                )
-            }
-        }
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val state = areaState) {
-                is AreaListState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is AreaListState.Success -> {
-                    val filteredAreas = state.areas.filter {
-                        it.description.contains(searchQuery, ignoreCase = true)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Áreas", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Cabecera con Búsqueda
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+            ) {
+                Column(modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp)) {
+                    Text(
+                        text = "Explora nuestras unidades de investigación",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Buscar área...", color = Color.LightGray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.White) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            focusedBorderColor = Color.White,
+                            cursorColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Color.White
+                        ),
+                        singleLine = true
+                    )
+                }
+            }
 
-                    if (filteredAreas.isEmpty()) {
-                        Text(
-                            text = if (searchQuery.isEmpty()) "No hay áreas disponibles" else "No se encontraron áreas",
-                            modifier = Modifier.align(Alignment.Center),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                        )
-                    } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(filteredAreas) { area ->
-                                AreaCardWidget(area)
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = areaState) {
+                    is AreaListState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    is AreaListState.Success -> {
+                        val filteredAreas = state.areas.filter {
+                            it.description.contains(searchQuery, ignoreCase = true)
+                        }
+
+                        if (filteredAreas.isEmpty()) {
+                            Text(
+                                text = if (searchQuery.isEmpty()) "No hay áreas disponibles" else "No se encontraron áreas",
+                                modifier = Modifier.align(Alignment.Center),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            )
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(filteredAreas) { area ->
+                                    AreaCardWidget(area)
+                                }
                             }
                         }
                     }
-                }
-                is AreaListState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = state.message,
-                            color = Color.Red,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        Button(onClick = { areaViewModel.fetchAreas() }) {
-                            Text("Reintentar")
+                    is AreaListState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = state.message,
+                                color = Color.Red,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                            Button(onClick = { areaViewModel.fetchAreas() }) {
+                                Text("Reintentar")
+                            }
                         }
                     }
+                    else -> {}
                 }
-                else -> {}
             }
         }
     }

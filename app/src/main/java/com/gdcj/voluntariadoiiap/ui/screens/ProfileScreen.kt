@@ -8,6 +8,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -51,7 +52,7 @@ import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
 import com.gdcj.voluntariadoiiap.ui.viewmodel.*
 
-enum class SheetType { PERSONAL, STUDY, EXPERIENCE }
+enum class SheetType { PERSONAL, STUDY, EXPERIENCE, EDIT_STUDY, EDIT_EXPERIENCE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +83,9 @@ fun ProfileScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showSheetType by remember { mutableStateOf<SheetType?>(null) }
     var showPhotoOptionsDialog by remember { mutableStateOf(false) }
+    
+    var editingStudy by remember { mutableStateOf<Study?>(null) }
+    var editingExperience by remember { mutableStateOf<Experience?>(null) }
 
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
@@ -130,6 +134,7 @@ fun ProfileScreen(
             ProfileHeader(
                 user?.name ?: name, 
                 user?.email ?: email, 
+                user?.volunteerType ?: "Asignar Categoría",
                 user?.location ?: "Sin ubicación",
                 profilePictureUri, 
                 onBackClick
@@ -150,8 +155,24 @@ fun ProfileScreen(
             Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                 when (selectedTab) {
                     0 -> InfoPersonalContent(userDetailState, name, email) { showSheetType = SheetType.PERSONAL }
-                    1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it, userUid) } }
-                    2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it, userUid) } }
+                    1 -> StudyContent(
+                        userStudies, 
+                        onAddClick = { showSheetType = SheetType.STUDY },
+                        onEditClick = { study ->
+                            editingStudy = study
+                            showSheetType = SheetType.EDIT_STUDY
+                        },
+                        onDeleteClick = { study -> study.id?.let { studyViewModel.deleteStudy(it, userUid) } }
+                    )
+                    2 -> ExperienceContent(
+                        userExperiences, 
+                        onAddClick = { showSheetType = SheetType.EXPERIENCE },
+                        onEditClick = { exp ->
+                            editingExperience = exp
+                            showSheetType = SheetType.EDIT_EXPERIENCE
+                        },
+                        onDeleteClick = { exp -> exp.id?.let { experienceViewModel.deleteExperience(it, userUid) } }
+                    )
                 }
             }
             
@@ -210,9 +231,21 @@ fun ProfileScreen(
                         }
                         showSheetType = null
                     }
+                    SheetType.EDIT_STUDY -> StudyForm(study = editingStudy, onDismiss = { showSheetType = null }) { study ->
+                        if (userUid.isNotEmpty() && editingStudy?.id != null) {
+                            studyViewModel.updateStudy(userUid, editingStudy!!.id!!, study)
+                        }
+                        showSheetType = null
+                    }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
                         if (userUid.isNotEmpty()) {
                             experienceViewModel.createExperience(userUid, exp)
+                        }
+                        showSheetType = null
+                    }
+                    SheetType.EDIT_EXPERIENCE -> ExperienceForm(experience = editingExperience, onDismiss = { showSheetType = null }) { exp ->
+                        if (userUid.isNotEmpty() && editingExperience?.id != null) {
+                            experienceViewModel.updateExperience(userUid, editingExperience!!.id!!, exp)
                         }
                         showSheetType = null
                     }
@@ -224,7 +257,7 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun ProfileHeader(name: String, email: String, location: String, profilePictureUri: Uri?, onBackClick: () -> Unit, onPhotoClick: () -> Unit) {
+private fun ProfileHeader(name: String, email: String, category: String, location: String, profilePictureUri: Uri?, onBackClick: () -> Unit, onPhotoClick: () -> Unit) {
     val greenGradient = Brush.verticalGradient(colors = listOf(Color(0xFF2E7D32), Color(0xFF43A047)))
     Box(
         modifier = Modifier
@@ -242,7 +275,7 @@ private fun ProfileHeader(name: String, email: String, location: String, profile
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Atrás", tint = Color.White, modifier = Modifier.padding(8.dp))
                 }
                 Text("Perfil de Voluntario", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Spacer(modifier = Modifier.width(48.dp)) // Espacio vacío para balancear el título
+                Spacer(modifier = Modifier.width(48.dp))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -271,17 +304,17 @@ private fun ProfileHeader(name: String, email: String, location: String, profile
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).offset(y = (-40).dp),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(24.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = name, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF1B5E20), textAlign = TextAlign.Center)
-            Text(text = email, fontSize = 14.sp, color = Color.Gray)
+            Text(text = name, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = if(isSystemInDarkTheme()) Color.White else Color(0xFF1B5E20), textAlign = TextAlign.Center)
+            Text(text = email, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.LocationOn, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text(text = location, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
+                Text(text = "$category • $location", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF2E7D32))
             }
         }
     }
@@ -295,13 +328,13 @@ fun InfoPersonalContent(state: UserDetailState, defaultName: String, defaultEmai
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Person, null, tint = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Sobre mí", color = Color(0xFF1B5E20), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Sobre mí", color = if(isSystemInDarkTheme()) Color.White else Color(0xFF1B5E20), fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = user?.bio ?: "Completa tu biografía para que otros te conozcan mejor.",
             fontSize = 15.sp,
-            color = Color.DarkGray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 22.sp
         )
         
@@ -321,23 +354,23 @@ fun ProfileDataItem(icon: ImageVector, label: String, value: String) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F8E9).copy(alpha = 0.5f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(12.dp), color = Color.White) {
+            Surface(modifier = Modifier.size(40.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
                 Icon(icon, null, modifier = Modifier.padding(10.dp), tint = Color(0xFF2E7D32))
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF212121))
+                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
 }
 
 @Composable
-fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onDeleteClick: (Study) -> Unit) {
+fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onEditClick: (Study) -> Unit, onDeleteClick: (Study) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Formación Académica", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -348,7 +381,7 @@ fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onDeleteClick: (S
         else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 studies.forEach { study ->
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Card(modifier = Modifier.fillMaxWidth().clickable { onEditClick(study) }, shape = RoundedCornerShape(16.dp)) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.School, null, tint = Color(0xFF2E7D32))
                             Spacer(modifier = Modifier.width(16.dp))
@@ -366,7 +399,7 @@ fun StudyContent(studies: List<Study>, onAddClick: () -> Unit, onDeleteClick: (S
 }
 
 @Composable
-fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onDeleteClick: (Experience) -> Unit) {
+fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onEditClick: (Experience) -> Unit, onDeleteClick: (Experience) -> Unit) {
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Experiencia", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -377,7 +410,7 @@ fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onD
         else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 experiences.forEach { exp ->
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Card(modifier = Modifier.fillMaxWidth().clickable { onEditClick(exp) }, shape = RoundedCornerShape(16.dp)) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Work, null, tint = Color(0xFF2E7D32))
                             Spacer(modifier = Modifier.width(16.dp))
@@ -397,10 +430,11 @@ fun ExperienceContent(experiences: List<Experience>, onAddClick: () -> Unit, onD
 @Composable
 fun EmptyState(message: String) {
     Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-        Text(message, color = Color.Gray, textAlign = TextAlign.Center)
+        Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: String, onDismiss: () -> Unit, onSave: (User) -> Unit) {
     val currentUser = (state as? UserDetailState.Success)?.user
@@ -409,73 +443,91 @@ fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: Stri
     var phone by remember { mutableStateOf(currentUser?.phone ?: "") }
     var location by remember { mutableStateOf(currentUser?.location ?: "") }
     var bio by remember { mutableStateOf(currentUser?.bio ?: "") }
+    var volunteerType by remember { mutableStateOf(currentUser?.volunteerType ?: "Voluntario Senior") }
+
+    val volunteerOptions = listOf("Voluntario Junior", "Voluntario Senior", "Especialista", "Investigador")
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())) {
-        Text("Editar Perfil", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Color(0xFF1B5E20))
+        Text("Editar Perfil", fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = if(isSystemInDarkTheme()) Color.White else Color(0xFF1B5E20))
         Spacer(modifier = Modifier.height(24.dp))
         
         CustomTextField(value = name, onValueChange = { name = it }, label = "Nombre Completo", icon = Icons.Default.Person)
         CustomTextField(value = email, onValueChange = { email = it }, label = "Correo Electrónico", icon = Icons.Default.Email)
-        
-        CustomTextField(
-            value = phone, 
-            onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, 
-            label = "Teléfono", 
-            icon = Icons.Default.Phone, 
-            keyboardType = KeyboardType.Number
-        )
-        
+        CustomTextField(value = phone, onValueChange = { if (it.length <= 9 && it.all { c -> c.isDigit() }) phone = it }, label = "Teléfono", icon = Icons.Default.Phone, keyboardType = KeyboardType.Number)
         CustomTextField(value = location, onValueChange = { location = it }, label = "Ubicación", icon = Icons.Default.LocationOn)
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+            OutlinedTextField(
+                value = volunteerType,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Categoría de Voluntario") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, true).fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                leadingIcon = { Icon(Icons.Default.WorkspacePremium, null, tint = Color(0xFF2E7D32)) }
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                volunteerOptions.forEach { option ->
+                    DropdownMenuItem(text = { Text(option) }, onClick = { volunteerType = option; expanded = false })
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
         CustomTextField(value = bio, onValueChange = { bio = it }, label = "Sobre mí", icon = Icons.AutoMirrored.Filled.Notes, isMultiline = true)
         
         Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio)) }, 
+            onClick = { onSave(User(name = name, email = email, phone = phone, location = location, bio = bio, volunteerType = volunteerType)) }, 
             modifier = Modifier.fillMaxWidth().height(56.dp), 
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))
         ) { Text("Guardar Cambios", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
-        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar", color = Color.Gray) }
+        TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
 @Composable
-fun StudyForm(onDismiss: () -> Unit, onSave: (Study) -> Unit) {
-    var degree by remember { mutableStateOf("") }
-    var institution by remember { mutableStateOf("") }
-    var fieldOfStudy by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf("") }
+fun StudyForm(study: Study? = null, onDismiss: () -> Unit, onSave: (Study) -> Unit) {
+    var degree by remember { mutableStateOf(study?.degree ?: "") }
+    var institution by remember { mutableStateOf(study?.institution ?: "") }
+    var fieldOfStudy by remember { mutableStateOf(study?.fieldOfStudy ?: "") }
+    var startDate by remember { mutableStateOf(study?.startDate ?: "") }
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Agregar Estudio", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(if(study == null) "Agregar Estudio" else "Editar Estudio", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Spacer(modifier = Modifier.height(20.dp))
         CustomTextField(value = degree, onValueChange = { degree = it }, label = "Título/Carrera", icon = Icons.Default.School)
         CustomTextField(value = institution, onValueChange = { institution = it }, label = "Institución", icon = Icons.Default.Business)
         CustomTextField(value = fieldOfStudy, onValueChange = { fieldOfStudy = it }, label = "Campo de estudio", icon = Icons.AutoMirrored.Filled.Subject)
         CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        Button(onClick = { onSave(Study(degree = degree, institution = institution, fieldOfStudy = fieldOfStudy, startDate = startDate)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text(if(study == null) "Añadir" else "Actualizar") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }
 
 @Composable
-fun ExperienceForm(onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
-    var position by remember { mutableStateOf("") }
-    var company by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+fun ExperienceForm(experience: Experience? = null, onDismiss: () -> Unit, onSave: (Experience) -> Unit) {
+    var position by remember { mutableStateOf(experience?.position ?: "") }
+    var company by remember { mutableStateOf(experience?.company ?: "") }
+    var startDate by remember { mutableStateOf(experience?.startDate ?: "") }
+    var description by remember { mutableStateOf(experience?.description ?: "") }
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Agregar Experiencia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        Text(if(experience == null) "Agregar Experiencia" else "Editar Experiencia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
         Spacer(modifier = Modifier.height(20.dp))
         CustomTextField(value = position, onValueChange = { position = it }, label = "Cargo", icon = Icons.Default.Work)
         CustomTextField(value = company, onValueChange = { company = it }, label = "Empresa/Organización", icon = Icons.Default.Business)
         CustomTextField(value = startDate, onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) startDate = it }, label = "Año de inicio (Ej: 2020)", icon = Icons.Default.CalendarToday, keyboardType = KeyboardType.Number)
         CustomTextField(value = description, onValueChange = { description = it }, label = "Descripción", icon = Icons.AutoMirrored.Filled.Subject, isMultiline = true)
         Spacer(modifier = Modifier.height(30.dp))
-        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text("Añadir") }
+        Button(onClick = { onSave(Experience(position = position, company = company, startDate = startDate, description = description)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Text(if(experience == null) "Añadir" else "Actualizar") }
         TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
     }
 }

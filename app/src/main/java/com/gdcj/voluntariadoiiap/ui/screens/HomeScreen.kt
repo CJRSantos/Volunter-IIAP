@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -52,6 +53,7 @@ fun HomeScreen(
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
     val areaState by areaViewModel.areaListState.collectAsState()
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
     
     var showAllAreas by remember { mutableStateOf(false) }
 
@@ -82,7 +84,7 @@ fun HomeScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA)),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         // HERO CARD: INICIATIVA 2026
@@ -127,7 +129,7 @@ fun HomeScreen(
                         title = area.description,
                         location = if (index % 2 == 0) "Iquitos" else "San Martín",
                         tag = if (index % 2 == 0) "Activo" else "Urgente",
-                        tagColor = if (index % 2 == 0) Color(0xFFFDE8D7) else Color(0xFFFFE0B2),
+                        tagColor = if (index % 2 == 0) Color(0xFFFDE8D7).copy(alpha = if(isDark) 0.3f else 1f) else Color(0xFFFFE0B2).copy(alpha = if(isDark) 0.3f else 1f),
                         tagTextColor = if (index % 2 == 0) Color(0xFFD47321) else Color(0xFFE65100),
                         imageUrl = when(index % 3) {
                             0 -> "https://images.unsplash.com/photo-1543158023-e6293442654a?q=80&w=400"
@@ -141,7 +143,6 @@ fun HomeScreen(
                 item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFFE64A19)) } }
             }
             else -> {
-                // Mock areas for test as per user request
                 val mockAreas = listOf("Rescate del Delfín Rosado", "Reforestación Nativa", "Monitoreo de Aves", "Calidad del Agua", "Bosques Inundables", "Suelos Amazónicos", "Peces Ornamentales")
                 val areasToShow = if (showAllAreas) mockAreas.take(7) else mockAreas.take(2)
                 itemsIndexed(areasToShow) { index, title ->
@@ -149,7 +150,7 @@ fun HomeScreen(
                         title = title,
                         location = if (index % 2 == 0) "Iquitos" else "San Martín",
                         tag = if (index % 2 == 0) "Activo" else "Urgente",
-                        tagColor = if (index % 2 == 0) Color(0xFFFDE8D7) else Color(0xFFFFE0B2),
+                        tagColor = if (index % 2 == 0) Color(0xFFFDE8D7).copy(alpha = if(isDark) 0.3f else 1f) else Color(0xFFFFE0B2).copy(alpha = if(isDark) 0.3f else 1f),
                         tagTextColor = if (index % 2 == 0) Color(0xFFD47321) else Color(0xFFE65100),
                         imageUrl = when(index % 3) {
                             0 -> "https://images.unsplash.com/photo-1543158023-e6293442654a?q=80&w=400"
@@ -249,6 +250,7 @@ fun VideoCarouselCard(video: VideoItem, onClick: () -> Unit) {
             .height(180.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -294,7 +296,10 @@ fun AreaVerticalCard(title: String, location: String, tag: String, tagColor: Col
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
@@ -313,14 +318,14 @@ fun AreaVerticalCard(title: String, location: String, tag: String, tagColor: Col
                     text = title,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = Color(0xFF1A1C1E),
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Proyecto de monitoreo en la...",
                     fontSize = 14.sp,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -335,9 +340,9 @@ fun AreaVerticalCard(title: String, location: String, tag: String, tagColor: Col
                         )
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = Color.LightGray)
+                    Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = location, fontSize = 13.sp, color = Color.LightGray)
+                    Text(text = location, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
                 }
             }
         }
@@ -357,7 +362,7 @@ fun SectionHeader(title: String, showAction: Boolean, onActionClick: (() -> Unit
             text = title,
             fontSize = 22.sp,
             fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1A1C1E)
+            color = MaterialTheme.colorScheme.onBackground
         )
         if (showAction) {
             Text(

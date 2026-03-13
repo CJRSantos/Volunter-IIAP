@@ -9,13 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-sealed class ExperienceListState {
-    object Idle : ExperienceListState()
-    object Loading : ExperienceListState()
-    data class Success(val experiences: List<Experience>) : ExperienceListState()
-    data class Error(val message: String) : ExperienceListState()
-}
-
 class ExperienceViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     
@@ -55,6 +48,26 @@ class ExperienceViewModel : ViewModel() {
                 fetchUserExperiences(userUid)
             } catch (e: Exception) {
                 _operationState.value = OperationState.Error(e.message ?: "Error al guardar")
+            }
+        }
+    }
+
+    fun updateExperience(userUid: String, experienceId: String, experience: Experience) {
+        viewModelScope.launch {
+            _operationState.value = OperationState.Loading
+            try {
+                val expData = hashMapOf(
+                    "userUid" to userUid,
+                    "position" to experience.position,
+                    "company" to experience.company,
+                    "startDate" to experience.startDate,
+                    "description" to experience.description
+                )
+                db.collection("experiencias").document(experienceId).set(expData).await()
+                _operationState.value = OperationState.Success("Experiencia actualizada")
+                fetchUserExperiences(userUid)
+            } catch (e: Exception) {
+                _operationState.value = OperationState.Error(e.message ?: "Error al actualizar")
             }
         }
     }
