@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.gdcj.voluntariadoiiap" />
+                  <option name="mobileSdkAppId" value="1:803661753510:android:0505cd5b3982abf1335867" />
+                  <option name="projectId" value="voluntariado-iiap" />
+                  <option name="projectNumber" value="803661753510" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
