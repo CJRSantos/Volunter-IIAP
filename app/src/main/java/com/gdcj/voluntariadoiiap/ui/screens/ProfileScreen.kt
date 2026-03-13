@@ -65,7 +65,7 @@ fun ProfileScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val userId by authViewModel.userId.collectAsState()
+    val userUid by authViewModel.userUid.collectAsState()
     val profilePictureUri by authViewModel.profilePictureUri.collectAsState()
     
     val userDetailState by userViewModel.userDetailState.collectAsState()
@@ -101,11 +101,11 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(userId) {
-        if (userId != -1) {
-            userViewModel.fetchUserById(userId)
-            userViewModel.fetchUserStudies(userId)
-            userViewModel.fetchUserExperiences(userId)
+    LaunchedEffect(userUid) {
+        if (userUid.isNotEmpty()) {
+            userViewModel.fetchUserById(userUid)
+            userViewModel.fetchUserStudies(userUid)
+            userViewModel.fetchUserExperiences(userUid)
         }
     }
 
@@ -115,14 +115,13 @@ fun ProfileScreen(
             onRefresh()
             onReset()
         } else if (state is OperationState.Error) {
-            Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
             onReset()
         }
     }
 
-    LaunchedEffect(userOpState) { handleState(userOpState, { userViewModel.fetchUserById(userId) }, userViewModel::resetOperationState) }
-    LaunchedEffect(studyOpState) { handleState(studyOpState, { userViewModel.fetchUserStudies(userId) }, studyViewModel::resetOperationState) }
-    LaunchedEffect(expOpState) { handleState(expOpState, { userViewModel.fetchUserExperiences(userId) }, experienceViewModel::resetOperationState) }
+    LaunchedEffect(userOpState) { handleState(userOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserById(userUid) }, userViewModel::resetOperationState) }
+    LaunchedEffect(studyOpState) { handleState(studyOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserStudies(userUid) }, studyViewModel::resetOperationState) }
+    LaunchedEffect(expOpState) { handleState(expOpState, { if(userUid.isNotEmpty()) userViewModel.fetchUserExperiences(userUid) }, experienceViewModel::resetOperationState) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -144,7 +143,7 @@ fun ProfileScreen(
 
             Box(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
                 when (selectedTab) {
-                    0 -> InfoPersonalContent(userDetailState) { showSheetType = SheetType.PERSONAL }
+                    0 -> InfoPersonalContent(userDetailState, name, email) { showSheetType = SheetType.PERSONAL }
                     1 -> StudyContent(userStudies, { showSheetType = SheetType.STUDY }) { study -> study.id?.let { studyViewModel.deleteStudy(it) } }
                     2 -> ExperienceContent(userExperiences, { showSheetType = SheetType.EXPERIENCE }) { exp -> exp.id?.let { experienceViewModel.deleteExperience(it) } }
                     3 -> AchievementsContent()
@@ -178,17 +177,19 @@ fun ProfileScreen(
         ModalBottomSheet(onDismissRequest = { showSheetType = null }, sheetState = sheetState, dragHandle = { BottomSheetDefaults.DragHandle() }) {
             Box(modifier = Modifier.fillMaxHeight(0.85f).navigationBarsPadding()) {
                 when (showSheetType) {
-                    SheetType.PERSONAL -> PersonalForm(userDetailState, onDismiss = { showSheetType = null }) { updatedUser ->
-                        userViewModel.updateUser(userId, updatedUser)
-                        authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
+                    SheetType.PERSONAL -> PersonalForm(userDetailState, name, email, onDismiss = { showSheetType = null }) { updatedUser ->
+                        if (userUid.isNotEmpty()) {
+                            userViewModel.updateUserInFirebase(userUid, updatedUser)
+                            authViewModel.updateLocalUserData(updatedUser.name, updatedUser.email)
+                        }
                         showSheetType = null
                     }
                     SheetType.STUDY -> StudyForm(onDismiss = { showSheetType = null }) { study ->
-                        studyViewModel.createStudy(study.copy(user_id = userId))
+                        // studyViewModel.createStudy(study.copy(user_id = userId))
                         showSheetType = null
                     }
                     SheetType.EXPERIENCE -> ExperienceForm(onDismiss = { showSheetType = null }) { exp ->
-                        experienceViewModel.createExperience(exp.copy(user_id = userId))
+                        // experienceViewModel.createExperience(exp.copy(user_id = userId))
                         showSheetType = null
                     }
                     null -> {}
@@ -218,9 +219,9 @@ private fun ProfileHeader(name: String, email: String, profilePictureUri: Uri?, 
                 Spacer(modifier = Modifier.size(48.dp))
             }
 
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.clickable { onPhotoClick() }) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(100.dp).clickable { onPhotoClick() }) {
                 Surface(
-                    modifier = Modifier.size(100.dp),
+                    modifier = Modifier.fillMaxSize(),
                     shape = CircleShape,
                     color = Color.White.copy(alpha = 0.2f),
                     border = BorderStroke(3.dp, Color.White)
@@ -276,7 +277,8 @@ fun ImpactItem(icon: ImageVector, value: String, label: String, modifier: Modifi
 }
 
 @Composable
-fun InfoPersonalContent(state: UserDetailState, onEditClick: () -> Unit) {
+fun InfoPersonalContent(state: UserDetailState, defaultName: String, defaultEmail: String, onEditClick: () -> Unit) {
+    val user = (state as? UserDetailState.Success)?.user
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Información Personal", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -287,9 +289,8 @@ fun InfoPersonalContent(state: UserDetailState, onEditClick: () -> Unit) {
         
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                val user = (state as? UserDetailState.Success)?.user
-                InfoItem(Icons.Default.Badge, "Nombre Completo", user?.name ?: "No especificado")
-                InfoItem(Icons.Default.Email, "Correo Electrónico", user?.email ?: "No especificado")
+                InfoItem(Icons.Default.Badge, "Nombre Completo", user?.name ?: defaultName)
+                InfoItem(Icons.Default.Email, "Correo Electrónico", user?.email ?: defaultEmail)
                 InfoItem(Icons.Default.Phone, "Teléfono", user?.phone ?: "No especificado")
                 InfoItem(Icons.Default.LocationOn, "Ubicación", user?.location ?: "No especificado")
                 InfoItem(Icons.AutoMirrored.Filled.Notes, "Sobre mí", user?.bio ?: "Sin biografía")
@@ -399,10 +400,10 @@ fun EmptyState(message: String) {
 }
 
 @Composable
-fun PersonalForm(state: UserDetailState, onDismiss: () -> Unit, onSave: (User) -> Unit) {
+fun PersonalForm(state: UserDetailState, defaultName: String, defaultEmail: String, onDismiss: () -> Unit, onSave: (User) -> Unit) {
     val currentUser = (state as? UserDetailState.Success)?.user
-    var name by remember { mutableStateOf(currentUser?.name ?: "") }
-    var email by remember { mutableStateOf(currentUser?.email ?: "") }
+    var name by remember { mutableStateOf(currentUser?.name ?: defaultName) }
+    var email by remember { mutableStateOf(currentUser?.email ?: defaultEmail) }
     var phone by remember { mutableStateOf(currentUser?.phone ?: "") }
     var location by remember { mutableStateOf(currentUser?.location ?: "") }
     var bio by remember { mutableStateOf(currentUser?.bio ?: "") }

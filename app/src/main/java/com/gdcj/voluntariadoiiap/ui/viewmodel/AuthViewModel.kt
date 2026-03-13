@@ -4,12 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
-import com.gdcj.voluntariadoiiap.data.model.*
-import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.json.JSONObject
+import kotlinx.coroutines.tasks.await
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -19,6 +19,8 @@ sealed class AuthState {
 }
 
 class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
@@ -31,23 +33,13 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     private val _userId = MutableStateFlow(sessionManager.fetchUserId())
     val userId = _userId.asStateFlow()
 
-    // Estado global para la foto de perfil
+    private val _userUid = MutableStateFlow(auth.currentUser?.uid ?: "")
+    val userUid = _userUid.asStateFlow()
+
     private val _profilePictureUri = MutableStateFlow<Uri?>(
         sessionManager.fetchProfilePicture()?.let { Uri.parse(it) }
     )
     val profilePictureUri = _profilePictureUri.asStateFlow()
-
-    init {
-        // Sincronizar datos si ya hay sesión activa
-        if (isUserLoggedIn()) {
-            val email = sessionManager.fetchUserEmail()
-            if (email != null) {
-                viewModelScope.launch {
-                    fetchAndSaveUserInfo(email)
-                }
-            }
-        }
-    }
 
     fun updateProfilePicture(uri: Uri?) {
         _profilePictureUri.value = uri
@@ -64,69 +56,49 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = RetrofitClient.authService.login(LoginRequest(email, pass))
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val token = body?.token ?: ""
+                val result = auth.signInWithEmailAndPassword(email, pass).await()
+                val user = result.user
+                
+                if (user != null) {
+                    val token = user.getIdToken(false).await().token ?: ""
                     sessionManager.saveAuthToken(token)
                     
+                    val name = user.displayName ?: "Usuario IIAP"
+                    _userName.value = name
                     _userEmail.value = email
-                    sessionManager.saveUserData(_userName.value, email)
+                    _userUid.value = user.uid
                     
-                    // Obtener info completa del usuario
-                    fetchAndSaveUserInfo(email)
+                    val dummyId = user.uid.hashCode() 
+                    _userId.value = dummyId
+                    sessionManager.saveUserId(dummyId)
+                    sessionManager.saveUserData(name, email)
                     
                     _authState.value = AuthState.Success("Bienvenido")
-                    onSuccess(_userName.value, email)
-                } else {
-                    val errorMsg = parseError(response.errorBody()?.string())
-                    _authState.value = AuthState.Error(errorMsg ?: "Credenciales inválidas")
+                    onSuccess(name, email)
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error de conexión: ${e.message}")
+                _authState.value = AuthState.Error(e.message ?: "Error al iniciar sesión")
             }
         }
-    }
-
-    private suspend fun fetchAndSaveUserInfo(email: String) {
-        try {
-            val usersResponse = RetrofitClient.userService.getUsers()
-            if (usersResponse.isSuccessful) {
-                val user = usersResponse.body()?.find { it.email == email }
-                if (user != null) {
-                    user.id?.let { 
-                        _userId.value = it
-                        sessionManager.saveUserId(it)
-                    }
-                    _userName.value = user.name
-                    sessionManager.saveUserData(user.name, email)
-                }
-            }
-        } catch (e: Exception) { }
     }
 
     fun register(name: String, email: String, pass: String, phone: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = RetrofitClient.authService.register(
-                    RegisterRequest(
-                        email = email, 
-                        password = pass, 
-                        name = name,
-                        phone = phone,
-                        role_id = 1
-                    )
-                )
-                if (response.isSuccessful) {
-                    // Después de registrar, hacemos login automático para obtener el token
+                val result = auth.createUserWithEmailAndPassword(email, pass).await()
+                val user = result.user
+                
+                if (user != null) {
+                    val profileUpdates = UserProfileChangeRequest.Builder()
+                        .setDisplayName(name)
+                        .build()
+                    user.updateProfile(profileUpdates).await()
+                    
                     login(email, pass, onSuccess)
-                } else {
-                    val errorMsg = parseError(response.errorBody()?.string())
-                    _authState.value = AuthState.Error(errorMsg ?: "Error al registrar")
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error de red: ${e.message}")
+                _authState.value = AuthState.Error(e.message ?: "Error al registrar")
             }
         }
     }
@@ -135,17 +107,15 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
-                val response = RetrofitClient.authService.changePassword(
-                    ChangePasswordRequest(current, new, confirm)
-                )
-                if (response.isSuccessful) {
-                    _authState.value = AuthState.Success(response.body()?.message ?: "Contraseña actualizada")
-                } else {
-                    val errorMsg = parseError(response.errorBody()?.string())
-                    _authState.value = AuthState.Error(errorMsg ?: "Error al cambiar contraseña")
+                val user = auth.currentUser
+                if (user != null && user.email != null) {
+                    val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.email!!, current)
+                    user.reauthenticate(credential).await()
+                    user.updatePassword(new).await()
+                    _authState.value = AuthState.Success("Contraseña actualizada")
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error de red: ${e.message}")
+                _authState.value = AuthState.Error("Error: Verifica tu contraseña actual")
             }
         }
     }
@@ -154,26 +124,18 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
         _authState.value = AuthState.Idle
     }
 
-    private fun parseError(errorBody: String?): String? {
-        if (errorBody == null) return null
-        return try {
-            val json = JSONObject(errorBody)
-            if (json.has("message")) json.getString("message")
-            else if (json.has("error")) json.getString("error")
-            else null
-        } catch (e: Exception) { null }
-    }
-
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
+            auth.signOut()
             sessionManager.clearSession()
             _userName.value = "Usuario IIAP"
             _userEmail.value = ""
             _userId.value = -1
+            _userUid.value = ""
             _profilePictureUri.value = null
             onSuccess()
         }
     }
     
-    fun isUserLoggedIn(): Boolean = sessionManager.fetchAuthToken() != null
+    fun isUserLoggedIn(): Boolean = auth.currentUser != null || sessionManager.fetchAuthToken() != null
 }

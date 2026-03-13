@@ -5,10 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.model.Experience
 import com.gdcj.voluntariadoiiap.data.model.Study
 import com.gdcj.voluntariadoiiap.data.model.User
-import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 sealed class UserListState {
     object Idle : UserListState()
@@ -32,6 +33,8 @@ sealed class OperationState {
 }
 
 class UserViewModel : ViewModel() {
+    private val db = FirebaseFirestore.getInstance()
+
     private val _userListState = MutableStateFlow<UserListState>(UserListState.Idle)
     val userListState = _userListState.asStateFlow()
 
@@ -47,113 +50,53 @@ class UserViewModel : ViewModel() {
     private val _userExperiences = MutableStateFlow<List<Experience>>(emptyList())
     val userExperiences = _userExperiences.asStateFlow()
 
-    fun fetchUsers() {
-        viewModelScope.launch {
-            _userListState.value = UserListState.Loading
-            try {
-                val response = RetrofitClient.userService.getUsers()
-                if (response.isSuccessful) {
-                    _userListState.value = UserListState.Success(response.body() ?: emptyList())
-                } else {
-                    _userListState.value = UserListState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _userListState.value = UserListState.Error(e.message ?: "Error desconocido")
-            }
-        }
-    }
-
-    fun fetchUserById(id: Int) {
+    fun fetchUserById(userId: String) {
         viewModelScope.launch {
             _userDetailState.value = UserDetailState.Loading
             try {
-                val response = RetrofitClient.userService.getUserById(id)
-                if (response.isSuccessful && response.body() != null) {
-                    _userDetailState.value = UserDetailState.Success(response.body()!!)
-                    fetchUserStudies(id)
-                    fetchUserExperiences(id)
+                val document = db.collection("users").document(userId).get().await()
+                if (document.exists()) {
+                    val user = document.toObject(User::class.java)
+                    if (user != null) {
+                        _userDetailState.value = UserDetailState.Success(user)
+                    }
                 } else {
-                    _userDetailState.value = UserDetailState.Error("Error: ${response.code()}")
+                    _userDetailState.value = UserDetailState.Error("Usuario no encontrado")
                 }
             } catch (e: Exception) {
-                _userDetailState.value = UserDetailState.Error(e.message ?: "Error desconocido")
+                _userDetailState.value = UserDetailState.Error(e.message ?: "Error al cargar perfil")
             }
         }
     }
 
-    fun fetchUserStudies(userId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = RetrofitClient.userService.getUserStudies(userId)
-                if (response.isSuccessful) {
-                    _userStudies.value = response.body() ?: emptyList()
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    fun fetchUserExperiences(userId: Int) {
-        viewModelScope.launch {
-            try {
-                val response = RetrofitClient.userService.getUserExperiences(userId)
-                if (response.isSuccessful) {
-                    _userExperiences.value = response.body() ?: emptyList()
-                }
-            } catch (e: Exception) { }
-        }
-    }
-
-    fun createUser(user: User) {
+    fun updateUserInFirebase(userId: String, user: User) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val response = RetrofitClient.userService.createUser(user)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Usuario creado")
-                    fetchUsers()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
+                db.collection("users").document(userId).set(user).await()
+                _operationState.value = OperationState.Success("Perfil actualizado")
+                fetchUserById(userId)
             } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
+                _operationState.value = OperationState.Error(e.message ?: "Error al actualizar")
             }
         }
     }
 
-    fun updateUser(id: Int, user: User) {
+    fun deleteUser(userId: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
             try {
-                val response = RetrofitClient.userService.updateUser(id, user)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Usuario actualizado")
-                    _userDetailState.value = UserDetailState.Success(response.body()!!)
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
+                db.collection("users").document(userId).delete().await()
+                _operationState.value = OperationState.Success("Usuario eliminado")
             } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
+                _operationState.value = OperationState.Error(e.message ?: "Error al eliminar")
             }
         }
     }
 
-    fun deleteUser(id: Int) {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Loading
-            try {
-                val response = RetrofitClient.userService.deleteUser(id)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Usuario eliminado")
-                    fetchUsers()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
-            }
-        }
-    }
-    
+    fun fetchUserStudies(userId: String) { }
+    fun fetchUserExperiences(userId: String) { }
+
     fun resetOperationState() {
         _operationState.value = OperationState.Idle
     }

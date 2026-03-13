@@ -43,7 +43,7 @@ fun SecurityScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = authViewModel.sessionManager
-    val userId by authViewModel.userId.collectAsState()
+    val userUid by authViewModel.userUid.collectAsState()
     
     var biometricEnabled by remember { mutableStateOf(sessionManager.isBiometricEnabled()) }
     var twoFactorEnabled by remember { mutableStateOf(false) }
@@ -235,8 +235,8 @@ fun SecurityScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (userId != -1) {
-                            userViewModel.deleteUser(userId)
+                        if (userUid.isNotEmpty()) {
+                            userViewModel.deleteUser(userUid)
                         } else {
                             Toast.makeText(context, "Error: No se pudo identificar al usuario", Toast.LENGTH_SHORT).show()
                         }
