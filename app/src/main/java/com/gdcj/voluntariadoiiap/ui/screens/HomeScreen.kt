@@ -50,6 +50,9 @@ fun HomeScreen(
     areaViewModel: AreaViewModel = viewModel(),
     viewModel: HomeViewModel = viewModel()
 ) {
+    val displayName = if (name.isEmpty()) "Voluntario IIAP" else name
+    val displayEmail = if (email.isEmpty()) "voluntario@iiap.gob.pe" else email
+
     val showLogoutDialog by viewModel.showLogoutDialog.collectAsState()
     val areaState by areaViewModel.areaListState.collectAsState()
     val context = LocalContext.current

@@ -3,7 +3,6 @@ package com.gdcj.voluntariadoiiap.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.model.Project
-import com.gdcj.voluntariadoiiap.data.remote.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -25,67 +24,37 @@ class ProjectViewModel : ViewModel() {
     fun fetchProjects() {
         viewModelScope.launch {
             _projectListState.value = ProjectListState.Loading
-            try {
-                val response = RetrofitClient.projectService.getProjects()
-                if (response.isSuccessful) {
-                    _projectListState.value = ProjectListState.Success(response.body() ?: emptyList())
-                } else {
-                    _projectListState.value = ProjectListState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _projectListState.value = ProjectListState.Error(e.message ?: "Error desconocido")
-            }
+            val mockProjects = listOf(
+                Project(id = 1, name = "Monitoreo de Delfines Rosados", description = "Seguimiento de poblaciones en el río Amazonas.", startDate = "2024-01-01", endDate = "2024-12-31"),
+                Project(id = 2, name = "Reforestación de Bosques Inundables", description = "Plantación de especies nativas en zonas de ribera.", startDate = "2024-02-01", endDate = "2024-11-30"),
+                Project(id = 3, name = "Calidad de Agua en la Amazonía", description = "Análisis fisicoquímico de principales afluentes.", startDate = "2024-03-01", endDate = "2024-10-31"),
+                Project(id = 4, name = "Estudio de Peces Ornamentales", description = "Investigación sobre reproducción en cautiverio.", startDate = "2024-04-01", endDate = "2024-09-30")
+            )
+            _projectListState.value = ProjectListState.Success(mockProjects)
         }
     }
 
     fun createProject(project: Project) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
-            try {
-                val response = RetrofitClient.projectService.createProject(project)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Proyecto creado")
-                    fetchProjects()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
-            }
+            _operationState.value = OperationState.Success("Proyecto creado localmente")
+            fetchProjects()
         }
     }
 
     fun updateProject(id: Int, project: Project) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
-            try {
-                val response = RetrofitClient.projectService.updateProject(id, project)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Proyecto actualizado")
-                    fetchProjects()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
-            }
+            _operationState.value = OperationState.Success("Proyecto actualizado localmente")
+            fetchProjects()
         }
     }
 
     fun deleteProject(id: Int) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
-            try {
-                val response = RetrofitClient.projectService.deleteProject(id)
-                if (response.isSuccessful) {
-                    _operationState.value = OperationState.Success("Proyecto eliminado")
-                    fetchProjects()
-                } else {
-                    _operationState.value = OperationState.Error("Error: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error desconocido")
-            }
+            _operationState.value = OperationState.Success("Proyecto eliminado localmente")
+            fetchProjects()
         }
     }
 

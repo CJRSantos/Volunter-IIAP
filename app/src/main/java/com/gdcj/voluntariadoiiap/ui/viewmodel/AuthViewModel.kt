@@ -4,14 +4,9 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gdcj.voluntariadoiiap.data.local.SessionManager
-import com.gdcj.voluntariadoiiap.data.model.User
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.UserProfileChangeRequest
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -21,22 +16,20 @@ sealed class AuthState {
 }
 
 class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val db = FirebaseFirestore.getInstance()
     
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
-    private val _userName = MutableStateFlow(sessionManager.fetchUserName() ?: "Usuario IIAP")
+    private val _userName = MutableStateFlow(sessionManager.fetchUserName() ?: "Voluntario IIAP")
     val userName = _userName.asStateFlow()
 
-    private val _userEmail = MutableStateFlow(sessionManager.fetchUserEmail() ?: "")
+    private val _userEmail = MutableStateFlow(sessionManager.fetchUserEmail() ?: "voluntario@iiap.gob.pe")
     val userEmail = _userEmail.asStateFlow()
 
     private val _userId = MutableStateFlow(sessionManager.fetchUserId())
     val userId = _userId.asStateFlow()
 
-    private val _userUid = MutableStateFlow(auth.currentUser?.uid ?: "")
+    private val _userUid = MutableStateFlow("local_user_uid")
     val userUid = _userUid.asStateFlow()
 
     private val _profilePictureUri = MutableStateFlow<Uri?>(
@@ -58,73 +51,46 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
     fun login(email: String, pass: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            try {
-                val result = auth.signInWithEmailAndPassword(email, pass).await()
-                val user = result.user
-                
-                if (user != null) {
-                    val token = user.getIdToken(false).await().token ?: ""
-                    sessionManager.saveAuthToken(token)
-                    
-                    val name = user.displayName ?: "Usuario IIAP"
-                    _userName.value = name
-                    _userEmail.value = email
-                    _userUid.value = user.uid
-                    
-                    val dummyId = user.uid.hashCode() 
-                    _userId.value = dummyId
-                    sessionManager.saveUserId(dummyId)
-                    sessionManager.saveUserData(name, email)
-                    
-                    _authState.value = AuthState.Success("Bienvenido")
-                    onSuccess(name, email)
-                }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error al iniciar sesión")
-            }
+            // Simulación local exitosa sin Firebase
+            val name = "Voluntario IIAP"
+            sessionManager.saveAuthToken("local_token")
+            _userName.value = name
+            _userEmail.value = email
+            _userUid.value = "local_user_uid"
+            
+            val dummyId = 12345
+            _userId.value = dummyId
+            sessionManager.saveUserId(dummyId)
+            sessionManager.saveUserData(name, email)
+            
+            _authState.value = AuthState.Success("Bienvenido (Modo Local)")
+            onSuccess(name, email)
         }
     }
 
     fun register(name: String, email: String, pass: String, phone: String, onSuccess: (String, String) -> Unit) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            try {
-                val result = auth.createUserWithEmailAndPassword(email, pass).await()
-                val user = result.user
-                
-                if (user != null) {
-                    // Actualizar perfil de Auth
-                    val profileUpdates = UserProfileChangeRequest.Builder()
-                        .setDisplayName(name)
-                        .build()
-                    user.updateProfile(profileUpdates).await()
-                    
-                    // Crear documento en Firestore para el usuario
-                    val newUser = User(name = name, email = email, phone = phone)
-                    db.collection("users").document(user.uid).set(newUser).await()
-                    
-                    login(email, pass, onSuccess)
-                }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error al registrar")
-            }
+            // Simulación local exitosa sin Firebase
+            sessionManager.saveAuthToken("local_token")
+            _userName.value = name
+            _userEmail.value = email
+            _userUid.value = "local_user_uid"
+            
+            val dummyId = 12345
+            _userId.value = dummyId
+            sessionManager.saveUserId(dummyId)
+            sessionManager.saveUserData(name, email)
+            
+            _authState.value = AuthState.Success("Registro exitoso (Modo Local)")
+            onSuccess(name, email)
         }
     }
 
     fun changePassword(current: String, new: String, confirm: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            try {
-                val user = auth.currentUser
-                if (user != null && user.email != null) {
-                    val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(user.email!!, current)
-                    user.reauthenticate(credential).await()
-                    user.updatePassword(new).await()
-                    _authState.value = AuthState.Success("Contraseña actualizada")
-                }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error("Error: Verifica tu contraseña actual")
-            }
+            _authState.value = AuthState.Success("Contraseña actualizada localmente")
         }
     }
 
@@ -134,10 +100,9 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
 
     fun logout(onSuccess: () -> Unit) {
         viewModelScope.launch {
-            auth.signOut()
             sessionManager.clearSession()
-            _userName.value = "Usuario IIAP"
-            _userEmail.value = ""
+            _userName.value = "Voluntario IIAP"
+            _userEmail.value = "voluntario@iiap.gob.pe"
             _userId.value = -1
             _userUid.value = ""
             _profilePictureUri.value = null
@@ -145,5 +110,5 @@ class AuthViewModel(val sessionManager: SessionManager) : ViewModel() {
         }
     }
     
-    fun isUserLoggedIn(): Boolean = auth.currentUser != null || sessionManager.fetchAuthToken() != null
+    fun isUserLoggedIn(): Boolean = true
 }

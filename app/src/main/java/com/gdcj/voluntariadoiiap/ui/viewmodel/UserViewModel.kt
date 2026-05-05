@@ -33,7 +33,6 @@ sealed class OperationState {
 }
 
 class UserViewModel : ViewModel() {
-    private val db = FirebaseFirestore.getInstance()
 
     private val _userListState = MutableStateFlow<UserListState>(UserListState.Idle)
     val userListState = _userListState.asStateFlow()
@@ -53,44 +52,24 @@ class UserViewModel : ViewModel() {
     fun fetchUserById(userId: String) {
         viewModelScope.launch {
             _userDetailState.value = UserDetailState.Loading
-            try {
-                val document = db.collection("users").document(userId).get().await()
-                if (document.exists()) {
-                    val user = document.toObject(User::class.java)
-                    if (user != null) {
-                        _userDetailState.value = UserDetailState.Success(user)
-                    }
-                } else {
-                    _userDetailState.value = UserDetailState.Error("Usuario no encontrado")
-                }
-            } catch (e: Exception) {
-                _userDetailState.value = UserDetailState.Error(e.message ?: "Error al cargar perfil")
-            }
+            // Simulación local
+            val user = User(name = "Voluntario IIAP", email = "voluntario@iiap.gob.pe", phone = "987654321")
+            _userDetailState.value = UserDetailState.Success(user)
         }
     }
 
     fun updateUserInFirebase(userId: String, user: User) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
-            try {
-                db.collection("users").document(userId).set(user).await()
-                _operationState.value = OperationState.Success("Perfil actualizado")
-                fetchUserById(userId)
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error al actualizar")
-            }
+            _operationState.value = OperationState.Success("Perfil actualizado localmente")
+            _userDetailState.value = UserDetailState.Success(user)
         }
     }
 
     fun deleteUser(userId: String) {
         viewModelScope.launch {
             _operationState.value = OperationState.Loading
-            try {
-                db.collection("users").document(userId).delete().await()
-                _operationState.value = OperationState.Success("Usuario eliminado")
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Error al eliminar")
-            }
+            _operationState.value = OperationState.Success("Usuario eliminado localmente")
         }
     }
 

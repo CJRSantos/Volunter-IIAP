@@ -38,7 +38,6 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
-    // Estados para los paneles deslizantes
     var showMenuOverlay by remember { mutableStateOf(false) }
     var showProfileOverlay by remember { mutableStateOf(false) }
     var showSecurityOverlay by remember { mutableStateOf(false) }
@@ -49,7 +48,12 @@ fun AppNavigation(
 
     val hideHeaderRoutes = listOf(
         AppScreens.LoginScreen.route,
-        AppScreens.RegisterScreen.route
+        AppScreens.RegisterScreen.route,
+        AppScreens.AreasScreen.route,
+        AppScreens.ConvocatoriasScreen.route,
+        AppScreens.NosotrosScreen.route,
+        AppScreens.PostulacionScreen.route,
+        AppScreens.AdditionalInfoScreen.route
     )
     
     val showHeader = currentRoute != null && hideHeaderRoutes.none { route -> 
@@ -59,11 +63,8 @@ fun AppNavigation(
     val name by authViewModel.userName.collectAsState()
     val email by authViewModel.userEmail.collectAsState()
 
-    val startDestination = remember {
-        if (authViewModel.isUserLoggedIn()) AppScreens.HomeScreen.route else AppScreens.LoginScreen.route
-    }
+    val startDestination = AppScreens.HomeScreen.route
 
-    // Manejo del botón atrás físico para cerrar paneles
     BackHandler(enabled = showMenuOverlay || showProfileOverlay || showSecurityOverlay) {
         if (showSecurityOverlay) {
             showSecurityOverlay = false
@@ -76,7 +77,7 @@ fun AppNavigation(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Scaffold(
             topBar = {
                 if (showHeader) {
@@ -88,107 +89,89 @@ fun AppNavigation(
                     )
                 }
             },
-            bottomBar = { AppBottomNavigation(navController = navController) }
+            bottomBar = { AppBottomNavigation(navController = navController) },
+            containerColor = Color.Transparent
         ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(innerPadding)
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = startDestination,
-                    enterTransition = { fadeIn(tween(300)) },
-                    exitTransition = { fadeOut(tween(300)) }
-                ) {
-                    composable(AppScreens.LoginScreen.route) {
-                        LoginScreen(
-                            authViewModel = authViewModel,
-                            onLoginClick = { n, e ->
-                                navController.navigate(AppScreens.HomeScreen.createRoute(n, e)) {
-                                    popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
-                                }
-                            },
-                            onRegisterClick = { navController.navigate(AppScreens.RegisterScreen.route) }
-                        )
-                    }
-                    composable(AppScreens.RegisterScreen.route) {
-                        RegisterScreen(
-                            authViewModel = authViewModel,
-                            onRegisterClick = { n, e ->
-                                navController.navigate(AppScreens.HomeScreen.createRoute(n, e)) {
-                                    popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
-                                }
-                            },
-                            onBackToLogin = { navController.popBackStack() }
-                        )
-                    }
+                composable(AppScreens.LoginScreen.route) {
+                    LoginScreen(
+                        authViewModel = authViewModel,
+                        onLoginClick = { n, e ->
+                            navController.navigate(AppScreens.HomeScreen.route) {
+                                popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                            }
+                        },
+                        onRegisterClick = { navController.navigate(AppScreens.RegisterScreen.route) }
+                    )
+                }
+                composable(AppScreens.RegisterScreen.route) {
+                    RegisterScreen(
+                        authViewModel = authViewModel,
+                        onRegisterClick = { n, e ->
+                            navController.navigate(AppScreens.HomeScreen.route) {
+                                popUpTo(AppScreens.LoginScreen.route) { inclusive = true }
+                            }
+                        },
+                        onBackToLogin = { navController.popBackStack() }
+                    )
+                }
 
-                    composable(
-                        route = AppScreens.HomeScreen.route,
-                        arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })
-                    ) { backStackEntry ->
-                        val n = backStackEntry.arguments?.getString("name") ?: ""
-                        val e = backStackEntry.arguments?.getString("email") ?: ""
-                        HomeScreen(
-                            name = n, 
-                            email = e, 
-                            themeViewModel = themeViewModel, 
-                            authViewModel = authViewModel,
-                            onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } },
-                            onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
-                            onNavigateToAreas = { navController.navigate(AppScreens.AreasScreen.createRoute(n, e)) },
-                            onProfileClick = { showProfileOverlay = true }
-                        )
-                    }
+                composable(route = AppScreens.HomeScreen.route) {
+                    HomeScreen(
+                        name = name, 
+                        email = email, 
+                        themeViewModel = themeViewModel, 
+                        authViewModel = authViewModel,
+                        onLogoutNavigate = { navController.navigate(AppScreens.LoginScreen.route) { popUpTo(0) { inclusive = true } } },
+                        onNavigateToInfo = { navController.navigate(AppScreens.AdditionalInfoScreen.route) },
+                        onNavigateToAreas = { navController.navigate(AppScreens.AreasScreen.route) },
+                        onProfileClick = { showProfileOverlay = true }
+                    )
+                }
 
-                    composable(route = AppScreens.AreasScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->
-                        val n = backStackEntry.arguments?.getString("name") ?: ""
-                        val e = backStackEntry.arguments?.getString("email") ?: ""
-                        AreasScreen(
-                            areaViewModel = areaViewModel, 
-                            name = n, 
-                            email = e,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                composable(route = AppScreens.AreasScreen.route) {
+                    AreasScreen(
+                        areaViewModel = areaViewModel, 
+                        name = name, 
+                        email = email,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
 
-                    composable(route = AppScreens.ConvocatoriasScreen.route) {
-                        ConvocatoriasScreen(
-                            projectViewModel = projectViewModel, 
-                            authViewModel = authViewModel,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                composable(route = AppScreens.ConvocatoriasScreen.route) {
+                    ConvocatoriasScreen(
+                        projectViewModel = projectViewModel, 
+                        authViewModel = authViewModel,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
 
-                    composable(route = AppScreens.NosotrosScreen.route, arguments = listOf(navArgument("name") { defaultValue = "" }, navArgument("email") { defaultValue = "" })) { backStackEntry ->
-                        val n = backStackEntry.arguments?.getString("name") ?: ""
-                        val e = backStackEntry.arguments?.getString("email") ?: ""
-                        NosotrosScreen(name = n, email = e)
-                    }
-                    
-                    composable(AppScreens.AdditionalInfoScreen.route) { 
-                        AdditionalInfoScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToPostulacion = { navController.navigate(AppScreens.PostulacionScreen.route) }
-                        ) 
-                    }
+                composable(route = AppScreens.NosotrosScreen.route) {
+                    NosotrosScreen(name = name, email = email)
+                }
+                
+                composable(AppScreens.AdditionalInfoScreen.route) { 
+                    AdditionalInfoScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNavigateToPostulacion = { navController.navigate(AppScreens.PostulacionScreen.route) }
+                    ) 
+                }
 
-                    composable(AppScreens.PostulacionScreen.route) {
-                        PostulacionScreen(
-                            authViewModel = authViewModel,
-                            applicationViewModel = applicationViewModel,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                composable(AppScreens.PostulacionScreen.route) {
+                    PostulacionScreen(
+                        authViewModel = authViewModel,
+                        applicationViewModel = applicationViewModel,
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
             }
         }
 
-        // CAPA DE OVERLAYS (Paneles deslizantes sobre toda la UI)
         if (showHeader) {
-            // Fondo oscuro común
             AnimatedVisibility(visible = showMenuOverlay || showProfileOverlay || showSecurityOverlay, enter = fadeIn(), exit = fadeOut()) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { 
                     showMenuOverlay = false
@@ -197,7 +180,6 @@ fun AppNavigation(
                 })
             }
 
-            // PANEL DE MENÚ
             AnimatedVisibility(
                 visible = showMenuOverlay,
                 enter = slideInHorizontally(initialOffsetX = { it }),
@@ -218,7 +200,6 @@ fun AppNavigation(
                 )
             }
 
-            // PANEL DE PERFIL (PANTALLA COMPLETA, SIN CURVAS)
             AnimatedVisibility(
                 visible = showProfileOverlay,
                 enter = slideInHorizontally(initialOffsetX = { it }),
@@ -235,7 +216,6 @@ fun AppNavigation(
                 )
             }
 
-            // PANEL DE SEGURIDAD (PANTALLA COMPLETA, SIN CURVAS)
             AnimatedVisibility(
                 visible = showSecurityOverlay,
                 enter = slideInHorizontally(initialOffsetX = { it }),
